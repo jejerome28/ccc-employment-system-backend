@@ -102,4 +102,14 @@ class AttendanceImportTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['file'], 'data.errors');
     }
+
+    public function test_non_utf8_file_is_rejected(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $csv = str_replace('Villaflor', "Pe\xF1aflor", $this->fixture());
+
+        $this->postJson('/api/attendance/import', ['file' => $this->upload($csv)])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'File is not UTF-8.');
+    }
 }

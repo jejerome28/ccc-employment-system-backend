@@ -10,6 +10,7 @@ use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use OpenSpout\Reader\XLSX\Reader;
 use Tests\TestCase;
+use ZipArchive;
 
 class AttendanceExportTest extends TestCase
 {
@@ -66,6 +67,21 @@ class AttendanceExportTest extends TestCase
             ['', 'Ana Abad', '', '2026-06-22', '', '', '08:00:00', '18:00:00', 600, 480],
             ['263', 'James Villaflor', 'COS Non-Teaching', '2026-06-22', 'Default Timetable(00:00-23:59:00)', 'P', '07:04:14', '18:37:44', 694, 480],
         ], $this->rows($response));
+    }
+
+    public function test_text_cells_are_never_formulas(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        Attendance::factory()->create(['work_date' => '2026-06-22', 'timetable' => '=1+1']);
+
+        $response = $this->get('/api/attendance/export?from=2026-06-22&to=2026-06-22')->assertOk();
+
+        $zip = new ZipArchive;
+        $zip->open($response->baseResponse->getFile()->getPathname());
+        $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+
+        $this->assertStringNotContainsString('<f>', $sheet);
+        $this->assertSame('=1+1', $this->rows($response)[1][4]);
     }
 
     public function test_empty_range_returns_header_only(): void
