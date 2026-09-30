@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Attendance;
+use App\Models\Employee;
 use App\Services\BiometricReportImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -105,5 +107,37 @@ class BiometricReportImporterTest extends TestCase
         $result = $this->importer()->parse($this->file("Seq,Person ID\nDate/Time: 2026-06-30 08:16:49\n"));
 
         $this->assertSame(['rows' => [], 'errors' => []], $result);
+    }
+
+    public function test_save_creates_then_updates_and_keeps_notes(): void
+    {
+        $e = Employee::factory()->create(['biometric_id' => '263']);
+        $rows = $this->importer()->parse(base_path('tests/Fixtures/biometric-report.csv'))['rows'];
+
+        $this->assertSame(['created' => 11, 'updated' => 0, 'unknown' => []], $this->importer()->save($rows));
+
+        $a = Attendance::where('employee_id', $e->id)->where('work_date', '2026-06-22')->first();
+        $this->assertSame('2026-06-21 23:04:14', $a->clock_in_at->format('Y-m-d H:i:s'));
+        $this->assertSame(694, $a->attended_minutes);
+        $this->assertSame('P', $a->status);
+
+        $a->update(['notes' => 'Seminar in Manila']);
+
+        $this->assertSame(['created' => 0, 'updated' => 11, 'unknown' => []], $this->importer()->save($rows));
+        $this->assertDatabaseCount('attendances', 11);
+        $this->assertSame('Seminar in Manila', $a->fresh()->notes);
+    }
+
+    public function test_save_skips_and_reports_unknown_person_ids(): void
+    {
+        Employee::factory()->create(['biometric_id' => '263']);
+        $csv = self::ROW."\n".str_replace(['751,263,Villaflor James Matthew H.'], ['752,999,Dela Cruz Juan'], self::ROW);
+        $rows = $this->importer()->parse($this->file($csv))['rows'];
+
+        $result = $this->importer()->save($rows);
+
+        $this->assertSame(1, $result['created']);
+        $this->assertSame([['line' => 2, 'person_id' => '999', 'name' => 'Dela Cruz Juan']], $result['unknown']);
+        $this->assertDatabaseCount('attendances', 1);
     }
 }

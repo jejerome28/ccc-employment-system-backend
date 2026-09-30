@@ -2,9 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Attendance;
+use App\Models\Employee;
 use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use DateTimeZone;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class BiometricReportImporter
 {
@@ -85,6 +89,40 @@ class BiometricReportImporter
         fclose($handle);
 
         return ['rows' => $rows, 'errors' => $errors];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array{created: int, updated: int, unknown: list<array{line: int, person_id: string, name: ?string}>}
+     */
+    public function save(array $rows): array
+    {
+        $employeeIds = Employee::whereIn('biometric_id', array_unique(array_column($rows, 'person_id')))
+            ->pluck('id', 'biometric_id');
+        $created = 0;
+        $updated = 0;
+        $unknown = [];
+
+        DB::transaction(function () use ($rows, $employeeIds, &$created, &$updated, &$unknown) {
+            foreach ($rows as $row) {
+                $employeeId = $employeeIds[$row['person_id']] ?? null;
+
+                if (! $employeeId) {
+                    $unknown[] = ['line' => $row['line'], 'person_id' => $row['person_id'], 'name' => $row['name']];
+
+                    continue;
+                }
+
+                $attendance = Attendance::updateOrCreate(
+                    ['employee_id' => $employeeId, 'work_date' => $row['work_date']],
+                    Arr::except($row, ['line', 'person_id', 'name', 'work_date']),
+                );
+
+                $attendance->wasRecentlyCreated ? $created++ : $updated++;
+            }
+        });
+
+        return ['created' => $created, 'updated' => $updated, 'unknown' => $unknown];
     }
 
     /**
