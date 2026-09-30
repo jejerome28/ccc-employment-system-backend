@@ -54,6 +54,18 @@ class LoginTest extends TestCase
             ->assertJsonValidationErrors(['email', 'password'], 'data.errors');
     }
 
+    public function test_unknown_fields_are_rejected(): void
+    {
+        $user = User::factory()->create();
+
+        $this->postJson('/api/login', ['email' => $user->email, 'password' => 'password', 'otp' => '123'])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('data.errors.otp.0', 'The otp field is prohibited.')
+            ->assertJsonMissingPath('data.errors.email')
+            ->assertJsonMissingPath('data.errors.password');
+    }
+
     public function test_account_locks_after_five_failures_even_with_correct_password(): void
     {
         $user = User::factory()->create();
