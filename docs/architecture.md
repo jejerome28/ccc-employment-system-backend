@@ -21,9 +21,14 @@ framework already built around MVC.
 
 ## Current state
 
-Default Laravel scaffold. No models, migrations, or routes beyond the
-framework defaults yet — this doc describes the intended structure, to
-follow as real features get added rather than decided ad hoc per PR.
+API-only. All routes in `routes/api.php`; everything except `POST /api/login`
+sits behind `auth:sanctum` (Bearer token). Resources: auth (`/login`, `/logout`,
+`/me`), `/dashboard`, `/employees` (+ `/employees/{id}/time-in|time-out`),
+`/attendance`. Every response uses the `{success, message, data}` envelope
+(`App\Http\Responses\ApiResponse` + renderers in `bootstrap/app.php`).
+
+App timezone is `Asia/Manila` — attendance "today" and clock times are local.
+`attendances.work_date` is stored as plain `Y-m-d` (model mutator), times as `H:i:s`.
 
 ## Database
 
