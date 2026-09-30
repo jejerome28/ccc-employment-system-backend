@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
         // accounts are created here (or with `php artisan tinker`).
         User::updateOrCreate(
             ['email' => 'admin@example.com'],
-            ['name' => 'System Administrator', 'password' => Hash::make('password')]
+            ['name' => 'System Administrator', 'password' => Hash::make(env('ADMIN_PASSWORD') ?? throw new \RuntimeException('Set ADMIN_PASSWORD in .env'))]
         );
 
         $employees = [
