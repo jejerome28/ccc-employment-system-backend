@@ -12,7 +12,13 @@ class AttendanceImportController extends Controller
 {
     public function __invoke(AttendanceImportRequest $request, BiometricReportImporter $importer): JsonResponse
     {
-        ['rows' => $rows, 'errors' => $errors] = $importer->parse($request->file('file')->getRealPath());
+        $path = $request->file('file')->getRealPath();
+
+        if (! mb_check_encoding(file_get_contents($path), 'UTF-8')) {
+            return ApiResponse::error('File is not UTF-8.', 422);
+        }
+
+        ['rows' => $rows, 'errors' => $errors] = $importer->parse($path);
 
         if ($errors) {
             return ApiResponse::error('The file has errors. Nothing was imported.', 422, ['errors' => $errors]);

@@ -220,6 +220,21 @@ class AttendanceTest extends TestCase
         $this->getJson("/api/attendance/{$a->id}")->assertNotFound();
     }
 
+    public function test_update_validates_a_lone_clock_against_the_stored_counterpart(): void
+    {
+        $a = Attendance::factory()->create(['clock_in_at' => '2026-09-30 01:00:00', 'clock_out_at' => '2026-09-30 09:00:00']);
+
+        $this->putJson("/api/attendance/{$a->id}", ['clock_out_at' => '2026-09-30T00:00:00Z'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['clock_out_at'], 'data.errors');
+
+        $this->putJson("/api/attendance/{$a->id}", ['clock_in_at' => '2026-09-30T10:00:00Z'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['clock_in_at'], 'data.errors');
+
+        $this->putJson("/api/attendance/{$a->id}", ['clock_out_at' => '2026-09-30T10:00:00Z'])->assertOk();
+    }
+
     public function test_worked_minutes_prefers_biometric_attended_minutes(): void
     {
         $a = Attendance::factory()->create([

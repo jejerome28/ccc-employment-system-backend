@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use Carbon\CarbonInterface;
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 
@@ -27,10 +29,14 @@ class AttendanceReportExporter
             ->orderBy('attendances.work_date')
             ->orderBy('employees.last_name')
             ->orderBy('employees.first_name')
+            ->orderBy('attendances.id')
             ->select('attendances.*')
             ->with('employee')
             ->lazy()
-            ->each(fn (Attendance $a) => $writer->addRow(Row::fromValues($this->row($a, $tz))));
+            ->each(fn (Attendance $a) => $writer->addRow(new Row(array_map(
+                fn ($v) => is_int($v) ? Cell::fromValue($v) : new StringCell((string) $v, null),
+                $this->row($a, $tz),
+            ))));
 
         $writer->close();
     }
