@@ -2,7 +2,7 @@
 
 ## Stack
 
-Laravel 12 (PHP 8.3), MySQL. API-only consumer: `ccc-employment-system-client`
+Laravel 13 (PHP 8.3), MySQL. API-only consumer: `ccc-employment-system-client`
 (Next.js) is the only client, over HTTP/JSON.
 
 ## Pattern: MVC
