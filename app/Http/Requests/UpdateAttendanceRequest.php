@@ -17,8 +17,8 @@ class UpdateAttendanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'time_in' => ['nullable', 'date_format:H:i'],
-            'time_out' => ['nullable', 'date_format:H:i'],
+            'clock_in_at' => ['nullable', 'date_format:Y-m-d\TH:i:s\Z'],
+            'clock_out_at' => ['nullable', 'date_format:Y-m-d\TH:i:s\Z', ...($this->filled('clock_in_at') ? ['after:clock_in_at'] : [])],
             'notes' => ['nullable', 'string', 'max:255'],
         ];
     }
