@@ -177,8 +177,8 @@ class AttendanceTest extends TestCase
 
         $this->getJson("/api/attendance/{$a->id}")
             ->assertOk()
-            ->assertJsonPath('data.worked_minutes', 694)
-            ->assertJsonPath('data.work_minutes', 480)
-            ->assertJsonPath('data.status', 'P');
+            ->assertJsonPath('data.attendance.worked_minutes', 694)
+            ->assertJsonPath('data.attendance.work_minutes', 480)
+            ->assertJsonPath('data.attendance.status', 'P');
     }
 }
