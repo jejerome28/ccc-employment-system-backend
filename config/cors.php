@@ -21,7 +21,6 @@ return [
 
     'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000')],
 
-    // ponytail: pattern forces per-request origin matching; fruitcake echoes a lone origin to every caller otherwise.
     'allowed_origins_patterns' => ['#^'.preg_quote(env('FRONTEND_URL', 'http://localhost:3000'), '#').'$#'],
 
     'allowed_headers' => ['*'],
