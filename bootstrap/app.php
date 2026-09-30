@@ -5,9 +5,12 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -42,5 +45,20 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return ApiResponse::error("Too many requests. Try again in {$seconds} seconds.", 429, ['retry_after' => $seconds])
                 ->withHeaders($e->getHeaders());
+        });
+
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if (! $request->is('api/*') || $e instanceof HttpResponseException) {
+                return null;
+            }
+
+            if ($e instanceof HttpExceptionInterface) {
+                $status = $e->getStatusCode();
+
+                return ApiResponse::error($e->getMessage() ?: (Response::$statusTexts[$status] ?? 'Error'), $status)
+                    ->withHeaders($e->getHeaders());
+            }
+
+            return config('app.debug') ? null : ApiResponse::error('Server error.', 500);
         });
     })->create();
