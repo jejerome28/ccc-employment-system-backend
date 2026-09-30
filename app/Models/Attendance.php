@@ -14,8 +14,8 @@ class Attendance extends Model
     protected $fillable = [
         'employee_id',
         'work_date',
-        'time_in',
-        'time_out',
+        'clock_in_at',
+        'clock_out_at',
         'notes',
         'timetable',
         'status',
@@ -31,6 +31,8 @@ class Attendance extends Model
     protected function casts(): array
     {
         return [
+            'clock_in_at' => 'immutable_datetime',
+            'clock_out_at' => 'immutable_datetime',
             'work_minutes' => 'integer',
             'ot_minutes' => 'integer',
             'attended_minutes' => 'integer',
@@ -46,31 +48,17 @@ class Attendance extends Model
         return $this->belongsTo(Employee::class);
     }
 
-    /**
-     * Minutes between time in and time out. Null until the day is closed.
-     * Handles an overnight shift (time out earlier on the clock than time in).
-     * Prefers the biometric report's Attended-min, which rounds to the nearest minute.
-     */
     public function getWorkedMinutesAttribute(): ?int
     {
         if ($this->attended_minutes !== null) {
             return $this->attended_minutes;
         }
 
-        if (! $this->time_in || ! $this->time_out) {
+        if (! $this->clock_in_at || ! $this->clock_out_at) {
             return null;
         }
 
-        $date = $this->work_date;
-
-        $in = Carbon::parse("{$date} {$this->time_in}");
-        $out = Carbon::parse("{$date} {$this->time_out}");
-
-        if ($out->lessThan($in)) {
-            $out->addDay();
-        }
-
-        return (int) $in->diffInMinutes($out);
+        return (int) $this->clock_in_at->diffInMinutes($this->clock_out_at);
     }
 
     public function getWorkedHoursAttribute(): ?float

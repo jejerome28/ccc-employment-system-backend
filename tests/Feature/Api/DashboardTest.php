@@ -26,10 +26,11 @@ class DashboardTest extends TestCase
         $done = Employee::factory()->create(['last_name' => 'Bautista']);
         Employee::factory()->create(['last_name' => 'Cruz']);
         Employee::factory()->inactive()->create();
-        Attendance::factory()->for($clockedIn)->create(['time_in' => '08:00', 'time_out' => null]);
-        Attendance::factory()->for($done)->create(['time_in' => '08:00', 'time_out' => '12:30']);
+        Attendance::factory()->for($clockedIn)->create(['work_date' => '2026-09-30', 'clock_in_at' => '2026-09-30 00:00:00']);
+        Attendance::factory()->for($done)->create(['work_date' => '2026-09-30', 'clock_in_at' => '2026-09-30 00:00:00', 'clock_out_at' => '2026-09-30 04:30:00']);
+        Attendance::factory()->for($done)->create(['work_date' => '2026-09-29', 'clock_in_at' => '2026-09-29 00:00:00', 'clock_out_at' => '2026-09-29 09:00:00']);
 
-        $this->getJson('/api/dashboard')
+        $this->getJson('/api/dashboard?date=2026-09-30')
             ->assertOk()
             ->assertJsonPath('data.stats', [
                 'employees' => 4,
@@ -41,7 +42,16 @@ class DashboardTest extends TestCase
             ->assertJsonPath('data.hours_today', 4.5)
             ->assertJsonCount(3, 'data.employees')
             ->assertJsonPath('data.employees.0.last_name', 'Abad')
-            ->assertJsonPath('data.employees.0.today_attendance.time_in', '08:00:00')
+            ->assertJsonPath('data.employees.0.today_attendance.clock_in_at', '2026-09-30T00:00:00Z')
             ->assertJsonPath('data.employees.2.today_attendance', null);
+    }
+
+    public function test_date_is_required(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->getJson('/api/dashboard')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['date'], 'data.errors');
     }
 }

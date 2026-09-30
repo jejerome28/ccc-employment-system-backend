@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ClockRequest;
 use App\Http\Requests\StoreAttendanceRequest;
 use App\Http\Requests\UpdateAttendanceRequest;
 use App\Http\Resources\AttendanceResource;
@@ -10,6 +11,7 @@ use App\Http\Resources\EmployeeResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Attendance;
 use App\Models\Employee;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,10 +20,10 @@ class AttendanceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([
-            'date' => ['nullable', 'date_format:Y-m-d'],
+            'date' => ['required', 'date_format:Y-m-d'],
             'q' => ['nullable', 'string', 'max:100'],
         ]);
-        $date = $filters['date'] ?? now()->toDateString();
+        $date = $filters['date'];
 
         $attendances = Attendance::query()
             ->with('employee')
@@ -47,8 +49,8 @@ class AttendanceController extends Controller
         $attendance = Attendance::updateOrCreate(
             ['employee_id' => $data['employee_id'], 'work_date' => $data['work_date']],
             [
-                'time_in' => $data['time_in'] ?? null,
-                'time_out' => $data['time_out'] ?? null,
+                'clock_in_at' => $data['clock_in_at'] ?? null,
+                'clock_out_at' => $data['clock_out_at'] ?? null,
                 'notes' => $data['notes'] ?? null,
             ],
         );
@@ -75,40 +77,45 @@ class AttendanceController extends Controller
         return ApiResponse::success('Attendance deleted.');
     }
 
-    public function timeIn(Employee $employee): JsonResponse
+    public function timeIn(ClockRequest $request, Employee $employee): JsonResponse
     {
         $attendance = Attendance::firstOrNew([
             'employee_id' => $employee->id,
-            'work_date' => now()->toDateString(),
+            'work_date' => $request->validated('work_date'),
         ]);
 
-        if ($attendance->time_in) {
-            return ApiResponse::error("{$employee->full_name} already timed in at ".substr($attendance->time_in, 0, 5).'.', 409);
+        if ($attendance->clock_in_at) {
+            return ApiResponse::error("{$employee->full_name} already timed in at ".self::wallClock($attendance->clock_in_at).'.', 409);
         }
 
-        $attendance->time_in = now()->format('H:i:s');
+        $attendance->clock_in_at = now()->utc();
         $attendance->save();
 
         return ApiResponse::success('Timed in.', ['attendance' => new AttendanceResource($attendance)]);
     }
 
-    public function timeOut(Employee $employee): JsonResponse
+    public function timeOut(ClockRequest $request, Employee $employee): JsonResponse
     {
         $attendance = Attendance::where('employee_id', $employee->id)
-            ->where('work_date', now()->toDateString())
+            ->where('work_date', $request->validated('work_date'))
             ->first();
 
-        if (! $attendance?->time_in) {
+        if (! $attendance?->clock_in_at) {
             return ApiResponse::error("{$employee->full_name} has not timed in today.", 409);
         }
 
-        if ($attendance->time_out) {
-            return ApiResponse::error("{$employee->full_name} already timed out at ".substr($attendance->time_out, 0, 5).'.', 409);
+        if ($attendance->clock_out_at) {
+            return ApiResponse::error("{$employee->full_name} already timed out at ".self::wallClock($attendance->clock_out_at).'.', 409);
         }
 
-        $attendance->time_out = now()->format('H:i:s');
+        $attendance->clock_out_at = now()->utc();
         $attendance->save();
 
         return ApiResponse::success('Timed out.', ['attendance' => new AttendanceResource($attendance)]);
+    }
+
+    private static function wallClock(CarbonInterface $moment): string
+    {
+        return $moment->setTimezone(config('attendance.timezone'))->format('g:i A');
     }
 }

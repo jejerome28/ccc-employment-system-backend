@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Employee
+ * @mixin Employee
  */
 class EmployeeResource extends JsonResource
 {
@@ -25,7 +26,7 @@ class EmployeeResource extends JsonResource
             'department' => $this->department,
             'hire_date' => $this->hire_date?->toDateString(),
             'status' => $this->status,
-            'today_attendance' => $this->whenLoaded('todayAttendance', fn ($a) => new AttendanceResource($a)),
+            'today_attendance' => $this->whenLoaded('dayAttendance', fn ($a) => new AttendanceResource($a)),
         ];
     }
 }
