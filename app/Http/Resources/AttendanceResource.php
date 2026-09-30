@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin \App\Models\Attendance
+ * @mixin Attendance
  */
 class AttendanceResource extends JsonResource
 {
@@ -15,7 +16,7 @@ class AttendanceResource extends JsonResource
         return [
             'id' => $this->id,
             'employee_id' => $this->employee_id,
-            'work_date' => $this->work_date->toDateString(),
+            'work_date' => $this->work_date,
             'time_in' => $this->time_in,
             'time_out' => $this->time_out,
             'notes' => $this->notes,
