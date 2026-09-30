@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+            <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Login Page | City College of Calamba</title>
+    <link rel="stylesheet" href="login.css">
+    </head>
+    <body>
+        <div class="login-container">
+             <div class="logincenter">
+                <div class="logo">
+         <img src="C:\Users\gerger\my projects\CCC_HRIS\loginpage\CCC Logo.png" alt="City College of Calamba Logo">
+    </div>
+                <h1>City College of Calamba</h1>
+                <p>Please enter your credentials to access the HRIS system.</p>
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <div class="options">
+                        <div class="remember">
+                            <input type="checkbox" id="remember" name="remember">
+                            <label for="remember">Remember me</label>
+                        </div>
+                        <a href="#" class="forgot">Forgot Password?</a>
+                    </div>
+                    <button type="submit" class="login-btn">Login</button>
+                    <div id="message"></div>
+                </form>
+                <div class="footer">
+                    &copy; 2026 City College of Calamba. All rights reserved.
+            </div>
+                
+        </div>
+        <script>
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const message = document.getElementById('message');
+
+                // Simple validation (replace with actual authentication logic)
+                if (username === 'admin' && password === 'password') {
+                    message.style.display = 'block';
+                    message.textContent = 'Login successful!';
+                    message.style.color = 'green';
+                    // Redirect to the admin homepage after a short delay
+                    setTimeout(() => {
+                        window.location.href = 'C:\\Users\\gerger\\my projects\\CCC_HRIS\\adminhomepage\\admin_homepage.html';
+                    }, 1000);
+                } else {
+                    message.style.display = 'block';
+                    message.textContent = 'Invalid username or password.';
+                    message.style.color = 'red';
+                }
+            });
+            function forgotPassword(){
+                alert("Please contact the Management Information Systems Department for password recovery.");
+            }
+        </script>
+    </body>
+    
+</html>
