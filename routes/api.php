@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AttendanceImportController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
@@ -17,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('employees', EmployeeController::class)->names('api.employees');
     Route::post('/employees/{employee}/time-in', [AttendanceController::class, 'timeIn'])->name('api.attendance.time-in');
     Route::post('/employees/{employee}/time-out', [AttendanceController::class, 'timeOut'])->name('api.attendance.time-out');
+    Route::post('/attendance/import', AttendanceImportController::class)->name('api.attendance.import');
     Route::apiResource('attendance', AttendanceController::class)
         ->parameters(['attendance' => 'attendance'])
         ->names('api.attendance');
