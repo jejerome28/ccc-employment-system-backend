@@ -21,25 +21,45 @@ class AttendanceTest extends TestCase
         $this->travelTo(Carbon::parse('2026-09-30 08:05:00', 'Asia/Manila'));
     }
 
-    public function test_time_in_uses_manila_time(): void
+    public function test_time_in_stores_utc_now_for_the_given_work_date(): void
+    {
+        $e = Employee::factory()->create();
+
+        $this->postJson("/api/employees/{$e->id}/time-in", ['work_date' => '2026-09-30'])
+            ->assertOk()
+            ->assertJsonPath('message', 'Timed in.')
+            ->assertJsonPath('data.attendance.work_date', '2026-09-30')
+            ->assertJsonPath('data.attendance.clock_in_at', '2026-09-30T00:05:00Z')
+            ->assertJsonPath('data.attendance.clock_out_at', null);
+    }
+
+    public function test_time_in_requires_work_date(): void
     {
         $e = Employee::factory()->create();
 
         $this->postJson("/api/employees/{$e->id}/time-in")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['work_date'], 'data.errors');
+    }
+
+    public function test_time_in_accepts_manila_today_before_utc_midnight(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-01 06:00:00', 'Asia/Manila'));
+        $e = Employee::factory()->create();
+
+        $this->postJson("/api/employees/{$e->id}/time-in", ['work_date' => '2026-10-01'])
             ->assertOk()
-            ->assertJsonPath('message', 'Timed in.')
-            ->assertJsonPath('data.attendance.work_date', '2026-09-30')
-            ->assertJsonPath('data.attendance.time_in', '08:05:00');
+            ->assertJsonPath('data.attendance.clock_in_at', '2026-09-30T22:00:00Z');
     }
 
     public function test_time_in_twice_returns_409(): void
     {
         $e = Employee::factory()->create(['first_name' => 'Maria', 'last_name' => 'Santos']);
-        $this->postJson("/api/employees/{$e->id}/time-in")->assertOk();
+        $this->postJson("/api/employees/{$e->id}/time-in", ['work_date' => '2026-09-30'])->assertOk();
 
-        $this->postJson("/api/employees/{$e->id}/time-in")
+        $this->postJson("/api/employees/{$e->id}/time-in", ['work_date' => '2026-09-30'])
             ->assertStatus(409)
-            ->assertExactJson(['success' => false, 'message' => 'Maria Santos already timed in at 08:05.', 'data' => null]);
+            ->assertExactJson(['success' => false, 'message' => 'Maria Santos already timed in at 8:05 AM.', 'data' => null]);
 
         $this->assertDatabaseCount('attendances', 1);
     }
@@ -48,7 +68,7 @@ class AttendanceTest extends TestCase
     {
         $e = Employee::factory()->create(['first_name' => 'Maria', 'last_name' => 'Santos']);
 
-        $this->postJson("/api/employees/{$e->id}/time-out")
+        $this->postJson("/api/employees/{$e->id}/time-out", ['work_date' => '2026-09-30'])
             ->assertStatus(409)
             ->assertJsonPath('message', 'Maria Santos has not timed in today.');
     }
@@ -56,23 +76,23 @@ class AttendanceTest extends TestCase
     public function test_time_out_then_again_returns_409(): void
     {
         $e = Employee::factory()->create(['first_name' => 'Maria', 'last_name' => 'Santos']);
-        $this->postJson("/api/employees/{$e->id}/time-in")->assertOk();
+        $this->postJson("/api/employees/{$e->id}/time-in", ['work_date' => '2026-09-30'])->assertOk();
         $this->travel(9)->hours();
 
-        $this->postJson("/api/employees/{$e->id}/time-out")
+        $this->postJson("/api/employees/{$e->id}/time-out", ['work_date' => '2026-09-30'])
             ->assertOk()
             ->assertJsonPath('message', 'Timed out.')
-            ->assertJsonPath('data.attendance.time_out', '17:05:00')
+            ->assertJsonPath('data.attendance.clock_out_at', '2026-09-30T09:05:00Z')
             ->assertJsonPath('data.attendance.worked_minutes', 540);
 
-        $this->postJson("/api/employees/{$e->id}/time-out")
+        $this->postJson("/api/employees/{$e->id}/time-out", ['work_date' => '2026-09-30'])
             ->assertStatus(409)
-            ->assertJsonPath('message', 'Maria Santos already timed out at 17:05.');
+            ->assertJsonPath('message', 'Maria Santos already timed out at 5:05 PM.');
     }
 
     public function test_time_in_unknown_employee_404(): void
     {
-        $this->postJson('/api/employees/999/time-in')->assertNotFound();
+        $this->postJson('/api/employees/999/time-in', ['work_date' => '2026-09-30'])->assertNotFound();
     }
 
     public function test_index_lists_date_with_totals_and_active_employees(): void
@@ -80,8 +100,8 @@ class AttendanceTest extends TestCase
         $a = Employee::factory()->create(['last_name' => 'Zamora']);
         $b = Employee::factory()->create(['last_name' => 'Abad']);
         Employee::factory()->inactive()->create();
-        Attendance::factory()->for($a)->create(['work_date' => '2026-09-29', 'time_in' => '08:00', 'time_out' => '17:00']);
-        Attendance::factory()->for($b)->create(['work_date' => '2026-09-29', 'time_in' => '08:00', 'time_out' => '12:00']);
+        Attendance::factory()->for($a)->create(['work_date' => '2026-09-29', 'clock_in_at' => '2026-09-29 00:00:00', 'clock_out_at' => '2026-09-29 09:00:00']);
+        Attendance::factory()->for($b)->create(['work_date' => '2026-09-29', 'clock_in_at' => '2026-09-29 00:00:00', 'clock_out_at' => '2026-09-29 04:00:00']);
         Attendance::factory()->for($a)->create(['work_date' => '2026-09-30']);
 
         $this->getJson('/api/attendance?date=2026-09-29')
@@ -92,14 +112,18 @@ class AttendanceTest extends TestCase
             ->assertJsonCount(2, 'data.employees');
     }
 
-    public function test_index_defaults_to_today_and_filters_by_q(): void
+    public function test_index_requires_date_and_filters_by_q(): void
     {
         $maria = Employee::factory()->create(['first_name' => 'Maria']);
         $jose = Employee::factory()->create(['first_name' => 'Jose']);
-        Attendance::factory()->for($maria)->create();
-        Attendance::factory()->for($jose)->create();
+        Attendance::factory()->for($maria)->create(['work_date' => '2026-09-30']);
+        Attendance::factory()->for($jose)->create(['work_date' => '2026-09-30']);
 
         $this->getJson('/api/attendance?q=Maria')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['date'], 'data.errors');
+
+        $this->getJson('/api/attendance?date=2026-09-30&q=Maria')
             ->assertOk()
             ->assertJsonCount(1, 'data.attendances')
             ->assertJsonPath('data.attendances.0.employee.first_name', 'Maria');
@@ -113,46 +137,81 @@ class AttendanceTest extends TestCase
     public function test_store_upserts_by_employee_and_date(): void
     {
         $e = Employee::factory()->create();
-        $payload = ['employee_id' => $e->id, 'work_date' => '2026-09-29', 'time_in' => '08:00', 'time_out' => '17:00', 'notes' => null];
+        $payload = [
+            'employee_id' => $e->id, 'work_date' => '2026-09-29',
+            'clock_in_at' => '2026-09-29T00:00:00Z', 'clock_out_at' => '2026-09-29T09:00:00Z', 'notes' => null,
+        ];
 
         $this->postJson('/api/attendance', $payload)->assertOk()->assertJsonPath('message', 'Attendance saved.');
-        $this->postJson('/api/attendance', [...$payload, 'time_out' => '18:00'])
+        $this->postJson('/api/attendance', [...$payload, 'clock_out_at' => '2026-09-29T10:00:00Z'])
             ->assertOk()
-            ->assertJsonPath('data.attendance.time_out', '18:00:00');
+            ->assertJsonPath('data.attendance.clock_out_at', '2026-09-29T10:00:00Z')
+            ->assertJsonPath('data.attendance.worked_minutes', 600);
 
         $this->assertDatabaseCount('attendances', 1);
     }
 
-    public function test_store_allows_overnight_and_rejects_future_date(): void
+    public function test_store_allows_overnight_and_bounds_work_date(): void
     {
         $e = Employee::factory()->create();
 
-        $this->postJson('/api/attendance', ['employee_id' => $e->id, 'work_date' => '2026-09-29', 'time_in' => '22:00', 'time_out' => '06:00'])
-            ->assertOk()
-            ->assertJsonPath('data.attendance.worked_minutes', 480);
+        $this->postJson('/api/attendance', [
+            'employee_id' => $e->id, 'work_date' => '2026-09-29',
+            'clock_in_at' => '2026-09-29T14:00:00Z', 'clock_out_at' => '2026-09-29T22:00:00Z',
+        ])->assertOk()->assertJsonPath('data.attendance.worked_minutes', 480);
 
-        $this->postJson('/api/attendance', ['employee_id' => $e->id, 'work_date' => '2026-10-01'])
+        $this->postJson('/api/attendance', ['employee_id' => $e->id, 'work_date' => '2026-10-01'])->assertOk();
+        $this->postJson('/api/attendance', ['employee_id' => $e->id, 'work_date' => '2026-10-02'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['work_date'], 'data.errors');
     }
 
+    public function test_store_with_only_clock_in_leaves_worked_minutes_null(): void
+    {
+        $e = Employee::factory()->create();
+
+        $this->postJson('/api/attendance', [
+            'employee_id' => $e->id, 'work_date' => '2026-09-29', 'clock_in_at' => '2026-09-29T00:00:00Z',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.attendance.clock_out_at', null)
+            ->assertJsonPath('data.attendance.worked_minutes', null);
+    }
+
+    public function test_store_rejects_clock_out_before_clock_in_and_non_iso(): void
+    {
+        $e = Employee::factory()->create();
+
+        $this->postJson('/api/attendance', [
+            'employee_id' => $e->id, 'work_date' => '2026-09-29',
+            'clock_in_at' => '2026-09-29T09:00:00Z', 'clock_out_at' => '2026-09-29T08:00:00Z',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['clock_out_at'], 'data.errors');
+
+        $this->postJson('/api/attendance', [
+            'employee_id' => $e->id, 'work_date' => '2026-09-29', 'clock_in_at' => '08:00',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['clock_in_at'], 'data.errors');
+    }
+
     public function test_show_update_destroy(): void
     {
-        $a = Attendance::factory()->create(['time_in' => '08:00', 'time_out' => null]);
+        $a = Attendance::factory()->create(['clock_in_at' => '2026-09-30 00:00:00']);
 
         $this->getJson("/api/attendance/{$a->id}")
             ->assertOk()
-            ->assertJsonPath('data.attendance.employee.id', $a->employee_id);
+            ->assertJsonPath('data.attendance.employee.id', $a->employee_id)
+            ->assertJsonPath('data.attendance.clock_in_at', '2026-09-30T00:00:00Z');
 
-        $this->putJson("/api/attendance/{$a->id}", ['time_in' => '08:30', 'time_out' => '17:00', 'notes' => 'late'])
+        $this->putJson("/api/attendance/{$a->id}", [
+            'clock_in_at' => '2026-09-30T00:30:00Z', 'clock_out_at' => '2026-09-30T09:00:00Z', 'notes' => 'late',
+        ])
             ->assertOk()
             ->assertJsonPath('message', 'Attendance updated.')
-            ->assertJsonPath('data.attendance.time_in', '08:30:00')
+            ->assertJsonPath('data.attendance.clock_in_at', '2026-09-30T00:30:00Z')
             ->assertJsonPath('data.attendance.notes', 'late');
 
-        $this->putJson("/api/attendance/{$a->id}", ['time_in' => '8am'])
+        $this->putJson("/api/attendance/{$a->id}", ['clock_in_at' => '8am'])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['time_in'], 'data.errors');
+            ->assertJsonValidationErrors(['clock_in_at'], 'data.errors');
 
         $this->deleteJson("/api/attendance/{$a->id}")
             ->assertOk()
@@ -163,12 +222,10 @@ class AttendanceTest extends TestCase
 
     public function test_worked_minutes_prefers_biometric_attended_minutes(): void
     {
-        // Row from the biometric report: 07:04:14 to 18:37:44 is 693.5 min, the device reports 694.
-        $a = Attendance::create([
-            'employee_id' => Employee::factory()->create()->id,
+        $a = Attendance::factory()->create([
             'work_date' => '2026-06-22',
-            'time_in' => '07:04:14',
-            'time_out' => '18:37:44',
+            'clock_in_at' => '2026-06-21 23:04:14',
+            'clock_out_at' => '2026-06-22 10:37:44',
             'timetable' => 'Default Timetable(00:00-23:59:00)',
             'status' => 'P',
             'work_minutes' => 480,

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -34,7 +35,7 @@ class DatabaseSeeder extends Seeder
                     'first_name' => $first,
                     'last_name' => $last,
                     'email' => $email,
-                    'phone' => '09' . str_pad((string) (170000000 + $i), 9, '0', STR_PAD_LEFT),
+                    'phone' => '09'.str_pad((string) (170000000 + $i), 9, '0', STR_PAD_LEFT),
                     'position' => $position,
                     'department' => $department,
                     'hire_date' => now()->subMonths(6 + $i)->toDateString(),
@@ -53,8 +54,8 @@ class DatabaseSeeder extends Seeder
                 Attendance::updateOrCreate(
                     ['employee_id' => $employee->id, 'work_date' => $date->toDateString()],
                     [
-                        'time_in' => sprintf('%02d:%02d:00', 8, rand(0, 25)),
-                        'time_out' => sprintf('%02d:%02d:00', 17, rand(0, 40)),
+                        'clock_in_at' => CarbonImmutable::parse($date->toDateString().sprintf(' 08:%02d:00', rand(0, 25)), config('attendance.timezone'))->utc(),
+                        'clock_out_at' => CarbonImmutable::parse($date->toDateString().sprintf(' 17:%02d:00', rand(0, 40)), config('attendance.timezone'))->utc(),
                     ]
                 );
             }

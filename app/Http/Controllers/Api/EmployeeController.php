@@ -17,6 +17,7 @@ class EmployeeController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
         ]);
@@ -24,7 +25,7 @@ class EmployeeController extends Controller
         $page = Employee::query()
             ->search($filters['q'] ?? null)
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
-            ->with('todayAttendance')
+            ->with(['dayAttendance' => fn ($q) => $q->where('work_date', $filters['date'])])
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate(12);
@@ -49,7 +50,7 @@ class EmployeeController extends Controller
 
     public function show(Request $request, Employee $employee): JsonResponse
     {
-        $month = $request->validate(['month' => ['nullable', 'date_format:Y-m']])['month'] ?? now()->format('Y-m');
+        $month = $request->validate(['month' => ['required', 'date_format:Y-m']])['month'];
         [$year, $monthNumber] = explode('-', $month);
 
         $attendances = $employee->attendances()
@@ -62,7 +63,7 @@ class EmployeeController extends Controller
             'employee' => new EmployeeResource($employee),
             'attendances' => AttendanceResource::collection($attendances),
             'total_minutes' => $attendances->sum(fn ($a) => $a->worked_minutes ?? 0),
-            'days_present' => $attendances->whereNotNull('time_in')->count(),
+            'days_present' => $attendances->whereNotNull('clock_in_at')->count(),
         ]);
     }
 

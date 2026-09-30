@@ -36,7 +36,7 @@ class EmployeeTest extends TestCase
         Employee::factory()->count(13)->create();
         Employee::factory()->create(['last_name' => 'Aaron']);
 
-        $this->getJson('/api/employees')
+        $this->getJson('/api/employees?date=2026-09-30')
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonCount(12, 'data.items')
@@ -52,26 +52,31 @@ class EmployeeTest extends TestCase
         Employee::factory()->create(['first_name' => 'Maria', 'status' => 'inactive']);
         Employee::factory()->create(['first_name' => 'Jose']);
 
-        $this->getJson('/api/employees?q=Maria&status=active')
+        $this->getJson('/api/employees?date=2026-09-30&q=Maria&status=active')
             ->assertOk()
             ->assertJsonCount(1, 'data.items')
             ->assertJsonPath('data.items.0.first_name', 'Maria')
             ->assertJsonPath('data.items.0.status', 'active');
     }
 
-    public function test_index_includes_today_attendance(): void
+    public function test_index_includes_attendance_for_the_given_date(): void
     {
         $e = Employee::factory()->create();
-        Attendance::factory()->for($e)->create(['time_in' => '08:05', 'time_out' => null]);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-09-30', 'clock_in_at' => '2026-09-30 00:05:00']);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-09-29', 'clock_in_at' => '2026-09-29 00:01:00']);
+
+        $this->getJson('/api/employees?date=2026-09-30')
+            ->assertJsonPath('data.items.0.today_attendance.clock_in_at', '2026-09-30T00:05:00Z')
+            ->assertJsonPath('data.items.0.today_attendance.clock_out_at', null);
 
         $this->getJson('/api/employees')
-            ->assertJsonPath('data.items.0.today_attendance.time_in', '08:05:00')
-            ->assertJsonPath('data.items.0.today_attendance.time_out', null);
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['date'], 'data.errors');
     }
 
     public function test_index_rejects_bad_status(): void
     {
-        $this->getJson('/api/employees?status=fired')
+        $this->getJson('/api/employees?date=2026-09-30&status=fired')
             ->assertUnprocessable()
             ->assertJsonPath('data.errors.status.0', fn ($m) => is_string($m));
     }
@@ -106,8 +111,8 @@ class EmployeeTest extends TestCase
     public function test_show_returns_month_attendance_and_totals(): void
     {
         $e = Employee::factory()->create();
-        Attendance::factory()->for($e)->create(['work_date' => '2026-08-03', 'time_in' => '08:00', 'time_out' => '17:00']);
-        Attendance::factory()->for($e)->create(['work_date' => '2026-08-04', 'time_in' => '08:00', 'time_out' => '12:00']);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-08-03', 'clock_in_at' => '2026-08-03 00:00:00', 'clock_out_at' => '2026-08-03 09:00:00']);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-08-04', 'clock_in_at' => '2026-08-04 00:00:00', 'clock_out_at' => '2026-08-04 04:00:00']);
         Attendance::factory()->for($e)->create(['work_date' => '2026-09-01']);
 
         $this->getJson("/api/employees/{$e->id}?month=2026-08")
@@ -124,7 +129,8 @@ class EmployeeTest extends TestCase
         $e = Employee::factory()->create();
 
         $this->getJson("/api/employees/{$e->id}?month=August")->assertUnprocessable();
-        $this->getJson('/api/employees/999')->assertNotFound()->assertJsonPath('success', false);
+        $this->getJson("/api/employees/{$e->id}")->assertUnprocessable();
+        $this->getJson('/api/employees/999?month=2026-08')->assertNotFound()->assertJsonPath('success', false);
     }
 
     public function test_update_ignores_own_unique_values(): void
