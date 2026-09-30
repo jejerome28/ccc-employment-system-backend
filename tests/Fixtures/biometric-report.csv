@@ -1,0 +1,17 @@
+Seq,Person ID,Name,Department,Position,Gender,Date,Weekday,Timetable,Check-In,Check-out,Work,OT,Attended,Late,Early,Absent,Leave,Status,Records
+747,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-18,Thu.,Default Timetable(00:00-23:59:00),08:03:58,18:00:27,480,0,596,0,0,0,0,P,08:03:58 08:04:00 18:00:25 18:00:27
+748,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-19,Fri.,Default Timetable(00:00-23:59:00),06:59:45,17:50:07,480,0,650,0,0,0,0,P,06:59:45 06:59:47 17:50:06 17:50:07
+749,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-20,Sat.,Default Timetable(00:00-23:59:00),-,-,0,0,0,0,0,480,0,A-S,-
+750,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-21,Sun.,Default Timetable(00:00-23:59:00),-,-,0,0,0,0,0,480,0,A-S,-
+Seq,Person ID,Name,Department,Position,Gender,Date,Weekday,Timetable,Check-In,Check-out,Work,OT,Attended,Late,Early,Absent,Leave,Status,Records
+751,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-22,Mon.,Default Timetable(00:00-23:59:00),07:04:14,18:37:44,480,0,694,0,0,0,0,P,07:04:14 07:04:16 18:37:43 18:37:44
+752,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-23,Tue.,Default Timetable(00:00-23:59:00),07:04:01,18:18:29,480,0,674,0,0,0,0,P,07:04:01 07:04:02 18:18:27 18:18:29
+753,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-24,Wed.,Default Timetable(00:00-23:59:00),-,-,0,0,0,0,0,480,0,A,-
+754,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-25,Thu.,Default Timetable(00:00-23:59:00),07:10:04,19:34:46,480,0,745,0,0,0,0,P,07:10:04 07:10:05 19:34:44 19:34:46
+755,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-26,Fri.,Default Timetable(00:00-23:59:00),-,-,0,0,0,0,0,480,0,A,-
+756,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-27,Sat.,Default Timetable(00:00-23:59:00),14:52:40,21:03:24,371,0,371,0,0,109,0,A-S,14:52:40 14:52:42 21:03:14 21:03:24
+757,263,Villaflor James Matthew H.,CITY COLLEGE OF CALAMBA/COS NON-TEACHING,-,Male,2026-06-28,Sun.,Default Timetable(00:00-23:59:00),-,-,0,0,0,0,0,480,0,A-S,-
+"Note: LV = Apply for Leave/Business Trip; L = Late; E = Early Leave; P = Attended; OT1 = OT1; OT2 = OT2; OT3 = OT3; A = Absent; S = Weekend"
+"Min. Unit: Work-min; OT-min; Attended-min; Late-min; Early-min; Absent-min; Leave-min"
+"Time Format: Work-MM; OT-MM; Attended-MM; Late-MM; Early-MM; Absent-MM; Leave-MM"
+Date/Time: 2026-06-30 08:16:49
