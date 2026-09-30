@@ -20,6 +20,15 @@ class AttendanceResource extends JsonResource
             'time_out' => $this->time_out,
             'notes' => $this->notes,
             'worked_minutes' => $this->worked_minutes,
+            'timetable' => $this->timetable,
+            'status' => $this->status,
+            'work_minutes' => $this->work_minutes,
+            'ot_minutes' => $this->ot_minutes,
+            'attended_minutes' => $this->attended_minutes,
+            'late_minutes' => $this->late_minutes,
+            'early_minutes' => $this->early_minutes,
+            'absent_minutes' => $this->absent_minutes,
+            'leave_minutes' => $this->leave_minutes,
             'employee' => $this->whenLoaded('employee', fn ($e) => new EmployeeResource($e)),
         ];
     }

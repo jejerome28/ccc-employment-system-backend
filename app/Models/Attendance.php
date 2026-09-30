@@ -17,12 +17,28 @@ class Attendance extends Model
         'time_in',
         'time_out',
         'notes',
+        'timetable',
+        'status',
+        'work_minutes',
+        'ot_minutes',
+        'attended_minutes',
+        'late_minutes',
+        'early_minutes',
+        'absent_minutes',
+        'leave_minutes',
     ];
 
     protected function casts(): array
     {
         return [
             'work_date' => 'date',
+            'work_minutes' => 'integer',
+            'ot_minutes' => 'integer',
+            'attended_minutes' => 'integer',
+            'late_minutes' => 'integer',
+            'early_minutes' => 'integer',
+            'absent_minutes' => 'integer',
+            'leave_minutes' => 'integer',
         ];
     }
 
@@ -34,9 +50,14 @@ class Attendance extends Model
     /**
      * Minutes between time in and time out. Null until the day is closed.
      * Handles an overnight shift (time out earlier on the clock than time in).
+     * Prefers the biometric report's Attended-min, which rounds to the nearest minute.
      */
     public function getWorkedMinutesAttribute(): ?int
     {
+        if ($this->attended_minutes !== null) {
+            return $this->attended_minutes;
+        }
+
         if (! $this->time_in || ! $this->time_out) {
             return null;
         }
