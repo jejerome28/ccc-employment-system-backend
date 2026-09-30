@@ -160,4 +160,25 @@ class AttendanceTest extends TestCase
 
         $this->getJson("/api/attendance/{$a->id}")->assertNotFound();
     }
+
+    public function test_worked_minutes_prefers_biometric_attended_minutes(): void
+    {
+        // Row from the biometric report: 07:04:14 to 18:37:44 is 693.5 min, the device reports 694.
+        $a = Attendance::create([
+            'employee_id' => Employee::factory()->create()->id,
+            'work_date' => '2026-06-22',
+            'time_in' => '07:04:14',
+            'time_out' => '18:37:44',
+            'timetable' => 'Default Timetable(00:00-23:59:00)',
+            'status' => 'P',
+            'work_minutes' => 480,
+            'attended_minutes' => 694,
+        ]);
+
+        $this->getJson("/api/attendance/{$a->id}")
+            ->assertOk()
+            ->assertJsonPath('data.worked_minutes', 694)
+            ->assertJsonPath('data.work_minutes', 480)
+            ->assertJsonPath('data.status', 'P');
+    }
 }
