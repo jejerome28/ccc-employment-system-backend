@@ -31,7 +31,6 @@ class Attendance extends Model
     protected function casts(): array
     {
         return [
-            'work_date' => 'date',
             'work_minutes' => 'integer',
             'ot_minutes' => 'integer',
             'attended_minutes' => 'integer',
@@ -62,9 +61,7 @@ class Attendance extends Model
             return null;
         }
 
-        $date = $this->work_date instanceof Carbon
-            ? $this->work_date->toDateString()
-            : (string) $this->work_date;
+        $date = $this->work_date;
 
         $in = Carbon::parse("{$date} {$this->time_in}");
         $out = Carbon::parse("{$date} {$this->time_out}");
@@ -91,7 +88,7 @@ class Attendance extends Model
             return $this->time_in ? 'Still in' : '—';
         }
 
-        return intdiv($minutes, 60) . 'h ' . str_pad($minutes % 60, 2, '0', STR_PAD_LEFT) . 'm';
+        return intdiv($minutes, 60).'h '.str_pad($minutes % 60, 2, '0', STR_PAD_LEFT).'m';
     }
 
     public static function formatClock(?string $time): string
