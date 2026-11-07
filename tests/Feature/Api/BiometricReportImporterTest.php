@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Services\BiometricReportImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CsvToXlsx;
 use Tests\TestCase;
 
 class BiometricReportImporterTest extends TestCase
@@ -139,5 +140,60 @@ class BiometricReportImporterTest extends TestCase
         $this->assertSame(1, $result['created']);
         $this->assertSame([['line' => 2, 'person_id' => '999', 'name' => 'Dela Cruz Juan']], $result['unknown']);
         $this->assertDatabaseCount('attendances', 1);
+    }
+    public function test_parses_xlsx_like_csv(): void
+    {
+        $csv = file_get_contents(base_path('tests/Fixtures/biometric-report.csv'));
+        $xlsx = tempnam(sys_get_temp_dir(), 'bio').'.xlsx';
+        CsvToXlsx::convert($csv, $xlsx);
+
+        $fromXlsx = $this->importer()->parse($xlsx, 'xlsx');
+        $fromCsv = $this->importer()->parse($this->file($csv));
+
+        $this->assertSame([], $fromXlsx['errors']);
+        $this->assertEquals($fromCsv['rows'], $fromXlsx['rows']);
+    }
+
+    public function test_windows_1252_csv_is_converted(): void
+    {
+        $row = str_replace('Villaflor James Matthew H.', 'Peña', self::ROW);
+
+        $result = $this->importer()->parse($this->file(mb_convert_encoding($row, 'Windows-1252', 'UTF-8')));
+
+        $this->assertSame('Peña', $result['rows'][0]['name']);
+    }
+
+    public function test_lv_status_marks_leave(): void
+    {
+        $e = Employee::factory()->create(['biometric_id' => '263']);
+        $row = '752,263,Villaflor,CCC,-,Male,2026-06-23,Tue.,Default Timetable(00:00-23:59:00),-,-,0,0,0,0,0,0,480,LV,-';
+
+        $result = $this->importer()->parse($this->file($row));
+        $this->importer()->save($result['rows']);
+
+        $this->assertDatabaseHas('attendances', ['employee_id' => $e->id, 'work_date' => '2026-06-23', 'remark' => 'leave', 'remark_part' => 'whole']);
+    }
+
+    public function test_reimport_keeps_manual_remark(): void
+    {
+        $e = Employee::factory()->create(['biometric_id' => '263']);
+        $path = $this->file(self::ROW);
+        $this->importer()->save($this->importer()->parse($path)['rows']);
+        Attendance::where('employee_id', $e->id)->update(['remark' => 'ob', 'remark_part' => 'am']);
+
+        $this->importer()->save($this->importer()->parse($path)['rows']);
+
+        $this->assertDatabaseHas('attendances', ['employee_id' => $e->id, 'remark' => 'ob', 'remark_part' => 'am']);
+    }
+    public function test_reimport_keeps_ob_set_on_an_lv_day(): void
+    {
+        $e = Employee::factory()->create(['biometric_id' => '263']);
+        $path = $this->file('752,263,Villaflor,CCC,-,Male,2026-06-23,Tue.,Default Timetable(00:00-23:59:00),-,-,0,0,0,0,0,0,480,LV,-');
+        $this->importer()->save($this->importer()->parse($path)['rows']);
+        Attendance::where('employee_id', $e->id)->update(['remark' => 'ob', 'remark_part' => 'whole']);
+
+        $this->importer()->save($this->importer()->parse($path)['rows']);
+
+        $this->assertDatabaseHas('attendances', ['employee_id' => $e->id, 'remark' => 'ob', 'remark_part' => 'whole']);
     }
 }

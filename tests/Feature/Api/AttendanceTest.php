@@ -108,20 +108,36 @@ class AttendanceTest extends TestCase
             ->assertOk()
             ->assertJsonCount(2, 'data.attendances')
             ->assertJsonPath('data.attendances.0.employee.last_name', 'Abad')
+            ->assertJsonPath('data.date', '2026-09-29')
             ->assertJsonPath('data.total_minutes', 780)
             ->assertJsonCount(2, 'data.employees');
     }
 
-    public function test_index_requires_date_and_filters_by_q(): void
+    public function test_index_without_date_opens_latest_day_with_punches(): void
+    {
+        $e = Employee::factory()->create();
+        Attendance::factory()->for($e)->create(['work_date' => '2026-09-25', 'clock_in_at' => '2026-09-24 23:00:00', 'clock_out_at' => '2026-09-25 10:00:00']);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-09-26', 'status' => 'A-S']);
+
+        $this->getJson('/api/attendance')
+            ->assertOk()
+            ->assertJsonPath('data.date', '2026-09-25')
+            ->assertJsonCount(1, 'data.attendances');
+    }
+
+    public function test_index_without_date_and_no_punches_uses_manila_today(): void
+    {
+        $this->getJson('/api/attendance')
+            ->assertOk()
+            ->assertJsonPath('data.date', '2026-09-30');
+    }
+
+    public function test_index_filters_by_q(): void
     {
         $maria = Employee::factory()->create(['first_name' => 'Maria']);
         $jose = Employee::factory()->create(['first_name' => 'Jose']);
         Attendance::factory()->for($maria)->create(['work_date' => '2026-09-30']);
         Attendance::factory()->for($jose)->create(['work_date' => '2026-09-30']);
-
-        $this->getJson('/api/attendance?q=Maria')
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['date'], 'data.errors');
 
         $this->getJson('/api/attendance?date=2026-09-30&q=Maria')
             ->assertOk()
@@ -252,5 +268,60 @@ class AttendanceTest extends TestCase
             ->assertJsonPath('data.attendance.worked_minutes', 694)
             ->assertJsonPath('data.attendance.work_minutes', 480)
             ->assertJsonPath('data.attendance.status', 'P');
+    }
+    public function test_store_accepts_remark_without_clocks(): void
+    {
+        $e = Employee::factory()->create();
+
+        $this->postJson('/api/attendance', [
+            'employee_id' => $e->id,
+            'work_date' => '2026-09-29',
+            'remark' => 'ob',
+            'remark_part' => 'whole',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.attendance.remark', 'ob')
+            ->assertJsonPath('data.attendance.remark_part', 'whole')
+            ->assertJsonPath('data.attendance.clock_in_at', null);
+    }
+
+    public function test_update_sets_half_day_remark(): void
+    {
+        $a = Attendance::factory()->create(['work_date' => '2026-09-29']);
+
+        $this->putJson("/api/attendance/{$a->id}", ['remark' => 'leave', 'remark_part' => 'am'])
+            ->assertOk()
+            ->assertJsonPath('data.attendance.remark', 'leave')
+            ->assertJsonPath('data.attendance.remark_part', 'am');
+
+        $this->assertDatabaseHas('attendances', ['id' => $a->id, 'remark' => 'leave', 'remark_part' => 'am']);
+    }
+
+    public function test_remark_validation(): void
+    {
+        $a = Attendance::factory()->create(['work_date' => '2026-09-29']);
+
+        $this->putJson("/api/attendance/{$a->id}", ['remark' => 'vacation', 'remark_part' => 'whole'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['remark'], 'data.errors');
+
+        $this->putJson("/api/attendance/{$a->id}", ['remark' => 'ob'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['remark_part'], 'data.errors');
+
+        $this->putJson("/api/attendance/{$a->id}", ['remark' => 'ob', 'remark_part' => 'night'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['remark_part'], 'data.errors');
+    }
+
+    public function test_clearing_remark(): void
+    {
+        $a = Attendance::factory()->create(['work_date' => '2026-09-29']);
+        $a->forceFill(['remark' => 'ob', 'remark_part' => 'whole'])->save();
+
+        $this->putJson("/api/attendance/{$a->id}", ['remark' => null, 'remark_part' => null])
+            ->assertOk()
+            ->assertJsonPath('data.attendance.remark', null)
+            ->assertJsonPath('data.attendance.remark_part', null);
     }
 }

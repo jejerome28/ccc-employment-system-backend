@@ -46,12 +46,16 @@ class DashboardTest extends TestCase
             ->assertJsonPath('data.employees.2.today_attendance', null);
     }
 
-    public function test_date_is_required(): void
+    public function test_without_date_shows_latest_day_with_punches(): void
     {
         Sanctum::actingAs(User::factory()->create());
+        $e = Employee::factory()->create();
+        Attendance::factory()->for($e)->create(['work_date' => '2026-11-13', 'clock_in_at' => '2026-11-12 23:00:00', 'clock_out_at' => '2026-11-13 10:00:00']);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-11-14', 'status' => 'A-S']);
 
         $this->getJson('/api/dashboard')
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['date'], 'data.errors');
+            ->assertOk()
+            ->assertJsonPath('data.date', '2026-11-13')
+            ->assertJsonPath('data.stats.completed', 1);
     }
 }

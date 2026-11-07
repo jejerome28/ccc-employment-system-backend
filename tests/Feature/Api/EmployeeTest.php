@@ -70,8 +70,9 @@ class EmployeeTest extends TestCase
             ->assertJsonPath('data.items.0.today_attendance.clock_out_at', null);
 
         $this->getJson('/api/employees')
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['date'], 'data.errors');
+            ->assertOk()
+            ->assertJsonPath('data.date', '2026-09-30')
+            ->assertJsonPath('data.items.0.today_attendance.clock_in_at', '2026-09-30T00:05:00Z');
     }
 
     public function test_index_rejects_bad_status(): void

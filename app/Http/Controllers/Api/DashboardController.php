@@ -14,7 +14,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $date = $request->validate(['date' => ['required', 'date_format:Y-m-d']])['date'];
+        $date = $request->validate(['date' => ['nullable', 'date_format:Y-m-d']])['date'] ?? Attendance::defaultDate();
 
         $employees = Employee::active()
             ->with(['dayAttendance' => fn ($q) => $q->where('work_date', $date)])
@@ -29,6 +29,7 @@ class DashboardController extends Controller
             ->sum(fn (Attendance $a) => $a->worked_minutes ?? 0);
 
         return ApiResponse::success('OK', [
+            'date' => $date,
             'stats' => [
                 'employees' => Employee::count(),
                 'active' => $employees->count(),
