@@ -25,6 +25,8 @@ class UpdateAttendanceRequest extends FormRequest
             'clock_in_at' => ['nullable', 'date_format:'.$format, ...(! $this->has('clock_out_at') && $storedOut ? ['before:'.$storedOut] : [])],
             'clock_out_at' => ['nullable', 'date_format:'.$format, ...($this->filled('clock_in_at') ? ['after:clock_in_at'] : (! $this->has('clock_in_at') && $storedIn ? ['after:'.$storedIn] : []))],
             'notes' => ['nullable', 'string', 'max:255'],
+            'remark' => ['nullable', 'in:ob,leave'],
+            'remark_part' => ['nullable', 'required_with:remark', 'in:whole,am,pm'],
         ];
     }
 }

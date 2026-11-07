@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AttendanceExportController;
 use App\Http\Controllers\Api\AttendanceImportController;
+use App\Http\Controllers\Api\AttendanceSummaryController;
+use App\Http\Controllers\Api\AttendanceSummaryExportController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeController;
@@ -21,6 +23,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/employees/{employee}/time-out', [AttendanceController::class, 'timeOut'])->name('api.attendance.time-out');
     Route::post('/attendance/import', AttendanceImportController::class)->name('api.attendance.import');
     Route::get('/attendance/export', AttendanceExportController::class)->name('api.attendance.export');
+    Route::get('/attendance/summary', AttendanceSummaryController::class)->name('api.attendance.summary');
+    Route::get('/attendance/summary/export', AttendanceSummaryExportController::class)->name('api.attendance.summary.export');
     Route::apiResource('attendance', AttendanceController::class)
         ->parameters(['attendance' => 'attendance'])
         ->names('api.attendance');

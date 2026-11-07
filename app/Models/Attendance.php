@@ -17,6 +17,8 @@ class Attendance extends Model
         'clock_in_at',
         'clock_out_at',
         'notes',
+        'remark',
+        'remark_part',
         'timetable',
         'status',
         'work_minutes',
@@ -41,6 +43,12 @@ class Attendance extends Model
             'absent_minutes' => 'integer',
             'leave_minutes' => 'integer',
         ];
+    }
+
+    public static function defaultDate(): string
+    {
+        return static::where(fn ($q) => $q->whereNotNull('clock_in_at')->orWhereNotNull('clock_out_at'))->max('work_date')
+            ?? now(config('attendance.timezone'))->toDateString();
     }
 
     public function employee(): BelongsTo

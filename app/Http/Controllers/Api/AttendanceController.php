@@ -20,10 +20,10 @@ class AttendanceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([
-            'date' => ['required', 'date_format:Y-m-d'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
             'q' => ['nullable', 'string', 'max:100'],
         ]);
-        $date = $filters['date'];
+        $date = $filters['date'] ?? Attendance::defaultDate();
 
         $attendances = Attendance::query()
             ->with('employee')
@@ -36,6 +36,7 @@ class AttendanceController extends Controller
             ->values();
 
         return ApiResponse::success('OK', [
+            'date' => $date,
             'attendances' => AttendanceResource::collection($attendances),
             'total_minutes' => $attendances->sum(fn (Attendance $a) => $a->worked_minutes ?? 0),
             'employees' => EmployeeResource::collection(Employee::active()->orderBy('last_name')->get()),
@@ -52,6 +53,8 @@ class AttendanceController extends Controller
                 'clock_in_at' => $data['clock_in_at'] ?? null,
                 'clock_out_at' => $data['clock_out_at'] ?? null,
                 'notes' => $data['notes'] ?? null,
+                'remark' => $data['remark'] ?? null,
+                'remark_part' => $data['remark_part'] ?? null,
             ],
         );
 

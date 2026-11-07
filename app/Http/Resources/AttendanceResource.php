@@ -20,6 +20,8 @@ class AttendanceResource extends JsonResource
             'clock_in_at' => $this->clock_in_at?->utc()->format('Y-m-d\TH:i:s\Z'),
             'clock_out_at' => $this->clock_out_at?->utc()->format('Y-m-d\TH:i:s\Z'),
             'notes' => $this->notes,
+            'remark' => $this->remark,
+            'remark_part' => $this->remark_part,
             'worked_minutes' => $this->worked_minutes,
             'timetable' => $this->timetable,
             'status' => $this->status,

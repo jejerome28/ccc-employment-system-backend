@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\CsvToXlsx;
 use Tests\TestCase;
 
 class AttendanceImportTest extends TestCase
@@ -103,13 +104,26 @@ class AttendanceImportTest extends TestCase
             ->assertJsonValidationErrors(['file'], 'data.errors');
     }
 
-    public function test_non_utf8_file_is_rejected(): void
+    public function test_non_utf8_file_is_imported(): void
     {
         Sanctum::actingAs(User::factory()->create());
-        $csv = str_replace('Villaflor', "Pe\xF1aflor", $this->fixture());
+        Employee::factory()->create(['biometric_id' => '263']);
+        $csv = mb_convert_encoding(str_replace('Villaflor', 'Peñaflor', $this->fixture()), 'Windows-1252', 'UTF-8');
 
         $this->postJson('/api/attendance/import', ['file' => $this->upload($csv)])
-            ->assertUnprocessable()
-            ->assertJsonPath('message', 'File is not UTF-8.');
+            ->assertOk()
+            ->assertJsonPath('message', 'Imported 11 rows.');
+    }
+
+    public function test_xlsx_upload_endpoint(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        Employee::factory()->create(['biometric_id' => '263']);
+        $xlsx = tempnam(sys_get_temp_dir(), 'bio').'.xlsx';
+        CsvToXlsx::convert($this->fixture(), $xlsx);
+
+        $this->postJson('/api/attendance/import', ['file' => UploadedFile::fake()->createWithContent('report.xlsx', file_get_contents($xlsx))])
+            ->assertOk()
+            ->assertJsonPath('message', 'Imported 11 rows.');
     }
 }

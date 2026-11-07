@@ -22,6 +22,8 @@ class StoreAttendanceRequest extends FormRequest
             'clock_in_at' => ['nullable', 'date_format:Y-m-d\TH:i:s\Z'],
             'clock_out_at' => ['nullable', 'date_format:Y-m-d\TH:i:s\Z', ...$this->afterClockIn()],
             'notes' => ['nullable', 'string', 'max:255'],
+            'remark' => ['nullable', 'in:ob,leave'],
+            'remark_part' => ['nullable', 'required_with:remark', 'in:whole,am,pm'],
         ];
     }
 

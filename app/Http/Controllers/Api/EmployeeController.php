@@ -7,6 +7,7 @@ use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\AttendanceResource;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\Attendance;
 use App\Models\Employee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,20 +18,23 @@ class EmployeeController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([
-            'date' => ['required', 'date_format:Y-m-d'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
         ]);
 
+        $date = $filters['date'] ?? Attendance::defaultDate();
+
         $page = Employee::query()
             ->search($filters['q'] ?? null)
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
-            ->with(['dayAttendance' => fn ($q) => $q->where('work_date', $filters['date'])])
+            ->with(['dayAttendance' => fn ($q) => $q->where('work_date', $date)])
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate(12);
 
         return ApiResponse::success('OK', [
+            'date' => $date,
             'items' => EmployeeResource::collection($page->items()),
             'meta' => [
                 'current_page' => $page->currentPage(),
