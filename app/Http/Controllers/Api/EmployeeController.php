@@ -21,11 +21,13 @@ class EmployeeController extends Controller
             'date' => ['nullable', 'date_format:Y-m-d'],
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'archived' => ['nullable', 'boolean'],
         ]);
 
         $date = $filters['date'] ?? Attendance::defaultDate();
 
         $page = Employee::query()
+            ->when($filters['archived'] ?? false, fn ($query) => $query->onlyTrashed())
             ->search($filters['q'] ?? null)
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->with(['dayAttendance' => fn ($q) => $q->where('work_date', $date)])
@@ -82,6 +84,13 @@ class EmployeeController extends Controller
     {
         $employee->delete();
 
-        return ApiResponse::success('Employee deleted.');
+        return ApiResponse::success('Employee archived.');
+    }
+
+    public function restore(Employee $employee): JsonResponse
+    {
+        $employee->restore();
+
+        return ApiResponse::success('Employee restored.', ['employee' => new EmployeeResource($employee)]);
     }
 }

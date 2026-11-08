@@ -26,6 +26,7 @@ class EmployeeResource extends JsonResource
             'department' => $this->department,
             'hire_date' => $this->hire_date?->toDateString(),
             'status' => $this->status,
+            'archived_at' => $this->deleted_at?->toIso8601String(),
             'today_attendance' => $this->whenLoaded('dayAttendance', fn ($a) => new AttendanceResource($a)),
         ];
     }

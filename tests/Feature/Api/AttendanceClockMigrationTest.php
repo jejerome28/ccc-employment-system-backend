@@ -12,7 +12,7 @@ class AttendanceClockMigrationTest extends TestCase
 
     public function test_manila_times_become_utc_and_roll_back(): void
     {
-        $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
+        $this->artisan('migrate:rollback', ['--step' => 4])->assertSuccessful();
 
         $employeeId = DB::table('employees')->insertGetId([
             'employee_code' => 'EMP-1', 'first_name' => 'James', 'last_name' => 'Villaflor', 'status' => 'active',
@@ -33,7 +33,7 @@ class AttendanceClockMigrationTest extends TestCase
         $this->assertNull($rows[2]->clock_in_at);
         $this->assertObjectNotHasProperty('time_in', $rows[0]);
 
-        $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
+        $this->artisan('migrate:rollback', ['--step' => 4])->assertSuccessful();
 
         $rows = DB::table('attendances')->orderBy('work_date')->get();
         $this->assertSame('07:04:14', $rows[0]->time_in);

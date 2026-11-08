@@ -21,7 +21,7 @@ class LoginTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Logged in.')
             ->assertJsonPath('data.token_type', 'Bearer')
-            ->assertJsonPath('data.user', ['id' => $user->id, 'name' => $user->name, 'email' => $user->email])
+            ->assertJsonPath('data.user', ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => 'admin'])
             ->assertJsonStructure(['data' => ['token', 'expires_at']]);
 
         $this->withToken($response->json('data.token'))->getJson('/api/me')->assertOk();

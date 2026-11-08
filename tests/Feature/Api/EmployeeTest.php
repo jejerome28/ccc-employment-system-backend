@@ -144,16 +144,17 @@ class EmployeeTest extends TestCase
             ->assertJsonPath('data.employee.position', 'HR Head');
     }
 
-    public function test_destroy_deletes_employee_and_attendance(): void
+    public function test_destroy_archives_employee(): void
     {
         $e = Employee::factory()->create();
         Attendance::factory()->for($e)->create();
 
         $this->deleteJson("/api/employees/{$e->id}")
             ->assertOk()
-            ->assertExactJson(['success' => true, 'message' => 'Employee deleted.', 'data' => null]);
+            ->assertExactJson(['success' => true, 'message' => 'Employee archived.', 'data' => null]);
 
-        $this->assertDatabaseCount('attendances', 0);
+        $this->assertSoftDeleted($e);
+        $this->assertDatabaseCount('attendances', 1);
         $this->getJson("/api/employees/{$e->id}")->assertNotFound();
     }
 }

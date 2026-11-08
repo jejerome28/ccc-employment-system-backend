@@ -22,13 +22,20 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('employees', EmployeeController::class);
-
+    Route::resource('employees', EmployeeController::class)->only(['index', 'show', 'create', 'edit']);
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
-    Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
-    Route::post('/attendance/{employee}/time-in', [AttendanceController::class, 'timeIn'])->name('attendance.time-in');
-    Route::post('/attendance/{employee}/time-out', [AttendanceController::class, 'timeOut'])->name('attendance.time-out');
     Route::get('/attendance/{attendance}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
-    Route::put('/attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
-    Route::delete('/attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+
+    Route::middleware('role:admin,hr')->group(function () {
+        Route::resource('employees', EmployeeController::class)->only(['store', 'update']);
+        Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
+        Route::post('/attendance/{employee}/time-in', [AttendanceController::class, 'timeIn'])->name('attendance.time-in');
+        Route::post('/attendance/{employee}/time-out', [AttendanceController::class, 'timeOut'])->name('attendance.time-out');
+        Route::put('/attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
+        Route::delete('/attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+    });
+
+    Route::middleware('role:admin')->group(function () {
+        Route::resource('employees', EmployeeController::class)->only(['destroy']);
+    });
 });
