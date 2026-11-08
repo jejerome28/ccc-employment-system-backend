@@ -20,7 +20,7 @@ class MeTest extends TestCase
             ->assertExactJson([
                 'success' => true,
                 'message' => 'OK',
-                'data' => ['user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email]],
+                'data' => ['user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => 'admin']],
             ]);
     }
 

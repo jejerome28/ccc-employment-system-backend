@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreAttendanceRequest extends FormRequest
 {
@@ -12,12 +13,12 @@ class StoreAttendanceRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, array<int, mixed>>
      */
     public function rules(): array
     {
         return [
-            'employee_id' => ['required', 'exists:employees,id'],
+            'employee_id' => ['required', Rule::exists('employees', 'id')->whereNull('deleted_at')],
             'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now()->addDay()->toDateString()],
             'clock_in_at' => ['nullable', 'date_format:Y-m-d\TH:i:s\Z'],
             'clock_out_at' => ['nullable', 'date_format:Y-m-d\TH:i:s\Z', ...$this->afterClockIn()],

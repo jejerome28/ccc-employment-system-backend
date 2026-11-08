@@ -15,8 +15,7 @@ class AttendanceSummary
     /** @return array{from: string, to: string, computed_through: ?string, rows: list<array<string, mixed>>, totals: array<string, int|float>, needs_check: list<array{employee_id: int, name: string, work_date: string, punch: string}>} */
     public function build(string $from, string $to): array
     {
-        $latest = Attendance::where(fn ($q) => $q->whereNotNull('status')->orWhereNotNull('clock_in_at')->orWhereNotNull('clock_out_at'))
-            ->max('work_date');
+        $latest = Attendance::latestRecordedDate();
         $through = $latest === null ? null : min($to, $latest);
         $tz = config('attendance.timezone');
 
@@ -32,7 +31,7 @@ class AttendanceSummary
         $needsCheck = [];
         $totals = array_fill_keys(self::TOTAL_KEYS, 0);
 
-        $employees = Employee::where(fn ($q) => $q->active()->orWhereHas('attendances', fn ($a) => $a->whereBetween('work_date', [$from, $to])))
+        $employees = Employee::withTrashed()->where(fn ($q) => $q->where(fn ($q) => $q->active()->whereNull('deleted_at'))->orWhereHas('attendances', fn ($a) => $a->whereBetween('work_date', [$from, $to])))
             ->orderBy('last_name')->orderBy('first_name')->get();
 
         foreach ($employees as $employee) {

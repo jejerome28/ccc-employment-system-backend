@@ -30,6 +30,12 @@ class Attendance extends Model
         'leave_minutes',
     ];
 
+    public static function latestRecordedDate(): ?string
+    {
+        return static::where(fn ($q) => $q->whereNotNull('status')->orWhereNotNull('clock_in_at')->orWhereNotNull('clock_out_at'))
+            ->max('work_date');
+    }
+
     protected function casts(): array
     {
         return [
@@ -53,7 +59,7 @@ class Attendance extends Model
 
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Employee::class)->withTrashed();
     }
 
     public function getWorkedMinutesAttribute(): ?int
