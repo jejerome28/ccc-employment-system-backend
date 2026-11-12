@@ -11,6 +11,9 @@ return [
     'lunch_end' => env('ATTENDANCE_LUNCH_END', '13:00'),
     'grace_minutes' => (int) env('ATTENDANCE_GRACE_MINUTES', 15),
 
+    'report_office' => 'CITY COLLEGE OF CALAMBA',
+    'tardy_day_minutes' => (int) env('ATTENDANCE_TARDY_DAY_MINUTES', 480),
+
     'holidays' => [
         '2026-11-02' => "All Souls' Day",
         '2026-11-30' => 'Bonifacio Day',

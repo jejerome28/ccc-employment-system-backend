@@ -6,9 +6,11 @@ use App\Http\Controllers\Api\AttendanceImportController;
 use App\Http\Controllers\Api\AttendanceSummaryController;
 use App\Http\Controllers\Api\AttendanceSummaryExportController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CraReportController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeCalendarController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\ReportSignatoryController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/attendance/export', AttendanceExportController::class)->name('api.attendance.export');
     Route::get('/attendance/summary', AttendanceSummaryController::class)->name('api.attendance.summary');
     Route::get('/attendance/summary/export', AttendanceSummaryExportController::class)->name('api.attendance.summary.export');
+    Route::get('/attendance/summary/cra', CraReportController::class)->name('api.attendance.summary.cra');
+    Route::get('/report-signatories', [ReportSignatoryController::class, 'index'])->name('api.report-signatories.index');
     Route::apiResource('attendance', AttendanceController::class)->only(['index', 'show'])
         ->parameters(['attendance' => 'attendance'])
         ->names('api.attendance');
@@ -42,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('employees', EmployeeController::class)->only(['destroy'])->names('api.employees');
         Route::post('/employees/{employee}/restore', [EmployeeController::class, 'restore'])->withTrashed()->name('api.employees.restore');
         Route::apiResource('users', UserController::class)->only(['index', 'store', 'update'])->names('api.users');
+        Route::put('/report-signatories/{signatory}', [ReportSignatoryController::class, 'update'])->name('api.report-signatories.update');
         Route::post('/attendance/import', AttendanceImportController::class)->name('api.attendance.import');
     });
 });

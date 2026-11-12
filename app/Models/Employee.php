@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EmploymentGroup;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,12 +25,14 @@ class Employee extends Model
         'department',
         'hire_date',
         'status',
+        'employment_group',
     ];
 
     protected function casts(): array
     {
         return [
             'hire_date' => 'date',
+            'employment_group' => EmploymentGroup::class,
         ];
     }
 

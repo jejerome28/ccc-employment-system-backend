@@ -5,6 +5,8 @@ namespace Tests\Feature\Api;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\AttendanceCalculator;
+use App\Services\AttendanceSummary;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -153,6 +155,7 @@ class AttendanceSummaryTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('data.errors.to.0', 'The range can be at most 31 days.');
     }
+
     public function test_future_remark_only_entry_does_not_extend_computed_through(): void
     {
         $this->login();
@@ -186,5 +189,55 @@ class AttendanceSummaryTest extends TestCase
         $data = $this->summary()->assertOk()->json('data');
 
         $this->assertEquals(1, $this->rowFor($data, $left)['present']);
+    }
+
+    public function test_build_rows_carry_group_status_archived_and_sorted_by_group(): void
+    {
+        $this->login();
+        $zed = $this->employee(['first_name' => 'Zed', 'last_name' => 'Zulu', 'employment_group' => 'permanent']);
+        $aaron = $this->employee(['first_name' => 'Aaron', 'last_name' => 'Abad', 'employment_group' => 'cos_teaching']);
+        $none = $this->employee(['first_name' => 'No', 'last_name' => 'Aaa']);
+        $this->punch($zed, '2026-11-09', '07:00', '17:00');
+
+        $data = $this->summary()->assertOk()->json('data');
+
+        $this->assertSame([$zed->id, $aaron->id, $none->id], array_column($data['rows'], 'employee_id'));
+        $this->assertSame('permanent', $data['rows'][0]['employment_group']);
+        $this->assertSame('active', $data['rows'][0]['status']);
+        $this->assertFalse($data['rows'][0]['archived']);
+        $this->assertNull($data['rows'][2]['employment_group']);
+    }
+
+    public function test_build_reports_ungrouped_count(): void
+    {
+        $this->login();
+        $this->employee(['employment_group' => 'permanent']);
+        $this->employee();
+        $this->employee();
+
+        $this->assertSame(2, $this->summary()->json('data.ungrouped_count'));
+    }
+
+    public function test_build_marks_trashed_employee_with_attendance_archived(): void
+    {
+        $this->login();
+        $e = $this->employee();
+        $this->punch($e, '2026-11-09', '07:00', '17:00');
+        $e->delete();
+
+        $this->assertTrue($this->rowFor($this->summary()->json('data'), $e)['archived']);
+    }
+
+    public function test_walk_yields_same_days_across_chunks(): void
+    {
+        $a = $this->employee(['last_name' => 'Abad']);
+        $b = $this->employee(['last_name' => 'Bautista']);
+        $this->punch($a, '2026-11-09', '07:00', '17:00');
+        $this->punch($b, '2026-11-10', '07:00', '17:00');
+
+        $keys = fn (AttendanceSummary $s) => array_map(fn ($y) => "{$y['employee']->id}|{$y['date']}|".$y['day']['status'], iterator_to_array($s->walk('2026-11-09', '2026-11-10'), false));
+
+        $this->assertSame($keys(app(AttendanceSummary::class)), $keys(new AttendanceSummary(new AttendanceCalculator, 1)));
+        $this->assertCount(4, $keys(new AttendanceSummary(new AttendanceCalculator, 1)));
     }
 }
