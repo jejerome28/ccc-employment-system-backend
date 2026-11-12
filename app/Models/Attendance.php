@@ -33,7 +33,7 @@ class Attendance extends Model
     public static function latestRecordedDate(): ?string
     {
         return static::where(fn ($q) => $q->whereNotNull('status')->orWhereNotNull('clock_in_at')->orWhereNotNull('clock_out_at'))
-            ->max('work_date');
+            ->orderByDesc('work_date')->value('work_date');
     }
 
     protected function casts(): array

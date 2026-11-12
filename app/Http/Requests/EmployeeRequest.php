@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\EmploymentGroup;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -29,6 +30,7 @@ class EmployeeRequest extends FormRequest
             'department' => ['nullable', 'string', 'max:80'],
             'hire_date' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            'employment_group' => ['nullable', Rule::enum(EmploymentGroup::class)],
         ];
     }
 }

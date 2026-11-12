@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\EmploymentGroup;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\AttendanceResource;
@@ -22,6 +23,7 @@ class EmployeeController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'archived' => ['nullable', 'boolean'],
+            'group' => ['nullable', Rule::in([...array_column(EmploymentGroup::cases(), 'value'), 'none'])],
         ]);
 
         $date = $filters['date'] ?? Attendance::defaultDate();
@@ -30,6 +32,9 @@ class EmployeeController extends Controller
             ->when($filters['archived'] ?? false, fn ($query) => $query->onlyTrashed())
             ->search($filters['q'] ?? null)
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['group'] ?? null, fn ($query, $group) => $group === 'none'
+                ? $query->whereNull('employment_group')
+                : $query->where('employment_group', $group))
             ->with(['dayAttendance' => fn ($q) => $q->where('work_date', $date)])
             ->orderBy('last_name')
             ->orderBy('first_name')

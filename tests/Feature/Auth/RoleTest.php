@@ -17,7 +17,7 @@ class RoleTest extends TestCase
 
     public function test_migration_makes_existing_users_admin_and_new_default_viewer(): void
     {
-        $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+        $this->artisan('migrate:rollback', ['--step' => 3])->assertSuccessful();
 
         DB::table('users')->insert(['name' => 'Old', 'email' => 'old@example.com', 'password' => 'x']);
 

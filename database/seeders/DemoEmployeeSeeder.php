@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\EmploymentGroup;
 use App\Models\Employee;
 use Illuminate\Database\Seeder;
 
@@ -20,6 +21,14 @@ class DemoEmployeeSeeder extends Seeder
         ['1010', 'Joy', 'Bautista', 'Cashier', 'Accounting'],
     ];
 
+    private const GROUPS = [
+        '1002' => EmploymentGroup::Permanent,
+        '1007' => EmploymentGroup::CosTeaching,
+        '1004' => EmploymentGroup::CosNonTeaching,
+        '1009' => EmploymentGroup::CosNonTeaching,
+        '1010' => EmploymentGroup::CosNonTeaching,
+    ];
+
     public function run(): void
     {
         foreach (self::EMPLOYEES as $i => [$personId, $first, $last, $position, $department]) {
@@ -35,6 +44,7 @@ class DemoEmployeeSeeder extends Seeder
                     'department' => $department,
                     'hire_date' => '2025-06-01',
                     'status' => 'active',
+                    'employment_group' => self::GROUPS[$personId] ?? EmploymentGroup::PermanentNonTeaching,
                 ]
             );
         }
