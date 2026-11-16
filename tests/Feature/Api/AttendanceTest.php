@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -125,6 +126,19 @@ class AttendanceTest extends TestCase
             ->assertJsonCount(1, 'data.attendances');
     }
 
+    public function test_default_date_is_latest_work_date_with_any_punch(): void
+    {
+        $e = Employee::factory()->create();
+        $this->assertSame('2026-09-30', Attendance::defaultDate());
+
+        Attendance::factory()->for($e)->create(['work_date' => '2026-09-20', 'clock_in_at' => '2026-09-20 00:00:00']);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-09-22', 'clock_out_at' => '2026-09-22 09:00:00']);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-09-21', 'clock_in_at' => '2026-09-21 00:00:00']);
+        Attendance::factory()->for($e)->create(['work_date' => '2026-09-28', 'status' => 'A-S']);
+
+        $this->assertSame('2026-09-22', Attendance::defaultDate());
+    }
+
     public function test_index_without_date_and_no_punches_uses_manila_today(): void
     {
         $this->getJson('/api/attendance')
@@ -169,6 +183,7 @@ class AttendanceTest extends TestCase
 
     public function test_store_allows_overnight_and_bounds_work_date(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-10-01 10:00', 'Asia/Manila'));
         $e = Employee::factory()->create();
 
         $this->postJson('/api/attendance', [
@@ -269,6 +284,7 @@ class AttendanceTest extends TestCase
             ->assertJsonPath('data.attendance.work_minutes', 480)
             ->assertJsonPath('data.attendance.status', 'P');
     }
+
     public function test_store_accepts_remark_without_clocks(): void
     {
         $e = Employee::factory()->create();

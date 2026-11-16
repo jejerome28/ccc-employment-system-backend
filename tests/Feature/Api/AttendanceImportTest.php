@@ -39,7 +39,7 @@ class AttendanceImportTest extends TestCase
             ->assertExactJson([
                 'success' => true,
                 'message' => 'Imported 11 rows.',
-                'data' => ['created' => 11, 'updated' => 0, 'unknown' => []],
+                'data' => ['created' => 11, 'updated' => 0, 'unknown' => [], 'future' => []],
             ]);
 
         $this->postJson('/api/attendance/import', ['file' => $this->upload($this->fixture())])

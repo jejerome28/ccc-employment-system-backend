@@ -12,7 +12,7 @@ class AttendanceSummaryExportController extends Controller
 {
     public function __invoke(AttendanceSummaryRequest $request, AttendanceSummary $summary, AttendanceSummaryExporter $exporter): BinaryFileResponse
     {
-        ['from' => $from, 'to' => $to] = $request->validated();
+        ['from' => $from, 'to' => $to] = $request->range();
         $path = tempnam(sys_get_temp_dir(), 'summary');
 
         $employees = $summary->employees($from, $to);

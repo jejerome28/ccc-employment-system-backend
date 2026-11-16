@@ -11,7 +11,7 @@ class AttendanceExportController extends Controller
 {
     public function __invoke(AttendanceExportRequest $request, AttendanceReportExporter $exporter): BinaryFileResponse
     {
-        ['from' => $from, 'to' => $to] = $request->validated();
+        ['from' => $from, 'to' => $to] = $request->range();
         $path = tempnam(sys_get_temp_dir(), 'attendance');
 
         $exporter->write($from, $to, $path);

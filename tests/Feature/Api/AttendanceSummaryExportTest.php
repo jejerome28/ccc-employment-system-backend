@@ -16,6 +16,12 @@ class AttendanceSummaryExportTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->travelTo(CarbonImmutable::parse('2026-11-20 10:00', 'Asia/Manila'));
+    }
+
     private const HEADERS = ['Person ID', 'Name', 'Department', 'Group', 'Present', 'Absent (LWOP)', 'Late (times)', 'Late (min)', 'Undertime (min)', 'OT (min)', 'OB', 'Leave', 'Needs check'];
 
     /** @return array<string, list<list<mixed>>> */

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\AttendanceDate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +20,7 @@ class StoreAttendanceRequest extends FormRequest
     {
         return [
             'employee_id' => ['required', Rule::exists('employees', 'id')->whereNull('deleted_at')],
-            'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now()->addDay()->toDateString()],
+            'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.AttendanceDate::today()],
             'clock_in_at' => ['nullable', 'date_format:Y-m-d\TH:i:s\Z'],
             'clock_out_at' => ['nullable', 'date_format:Y-m-d\TH:i:s\Z', ...$this->afterClockIn()],
             'notes' => ['nullable', 'string', 'max:255'],

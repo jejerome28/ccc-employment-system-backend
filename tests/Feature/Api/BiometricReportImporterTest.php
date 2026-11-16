@@ -115,7 +115,7 @@ class BiometricReportImporterTest extends TestCase
         $e = Employee::factory()->create(['biometric_id' => '263']);
         $rows = $this->importer()->parse(base_path('tests/Fixtures/biometric-report.csv'))['rows'];
 
-        $this->assertSame(['created' => 11, 'updated' => 0, 'unknown' => []], $this->importer()->save($rows));
+        $this->assertSame(['created' => 11, 'updated' => 0, 'unknown' => [], 'future' => []], $this->importer()->save($rows));
 
         $a = Attendance::where('employee_id', $e->id)->where('work_date', '2026-06-22')->first();
         $this->assertSame('2026-06-21 23:04:14', $a->clock_in_at->format('Y-m-d H:i:s'));
@@ -124,7 +124,7 @@ class BiometricReportImporterTest extends TestCase
 
         $a->update(['notes' => 'Seminar in Manila']);
 
-        $this->assertSame(['created' => 0, 'updated' => 11, 'unknown' => []], $this->importer()->save($rows));
+        $this->assertSame(['created' => 0, 'updated' => 11, 'unknown' => [], 'future' => []], $this->importer()->save($rows));
         $this->assertDatabaseCount('attendances', 11);
         $this->assertSame('Seminar in Manila', $a->fresh()->notes);
     }
@@ -141,6 +141,7 @@ class BiometricReportImporterTest extends TestCase
         $this->assertSame([['line' => 2, 'person_id' => '999', 'name' => 'Dela Cruz Juan']], $result['unknown']);
         $this->assertDatabaseCount('attendances', 1);
     }
+
     public function test_parses_xlsx_like_csv(): void
     {
         $csv = file_get_contents(base_path('tests/Fixtures/biometric-report.csv'));
@@ -185,6 +186,7 @@ class BiometricReportImporterTest extends TestCase
 
         $this->assertDatabaseHas('attendances', ['employee_id' => $e->id, 'remark' => 'ob', 'remark_part' => 'am']);
     }
+
     public function test_reimport_keeps_ob_set_on_an_lv_day(): void
     {
         $e = Employee::factory()->create(['biometric_id' => '263']);

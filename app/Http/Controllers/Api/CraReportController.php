@@ -12,7 +12,7 @@ class CraReportController extends Controller
 {
     public function __invoke(AttendanceSummaryRequest $request, AttendanceSummary $summary, CraReportExporter $exporter): BinaryFileResponse
     {
-        ['from' => $from, 'to' => $to] = $request->validated();
+        ['from' => $from, 'to' => $to] = $request->range();
         $path = tempnam(sys_get_temp_dir(), 'cra');
 
         $employees = $summary->employees($from, $to);

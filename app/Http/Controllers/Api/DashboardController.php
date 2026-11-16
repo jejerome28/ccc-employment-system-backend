@@ -7,6 +7,7 @@ use App\Http\Resources\EmployeeResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Support\AttendanceDate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,7 +15,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $date = $request->validate(['date' => ['nullable', 'date_format:Y-m-d']])['date'] ?? Attendance::defaultDate();
+        $date = $request->validate(['date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.AttendanceDate::today()]])['date'] ?? Attendance::defaultDate();
 
         $employees = Employee::active()
             ->with(['dayAttendance' => fn ($q) => $q->where('work_date', $date)])
