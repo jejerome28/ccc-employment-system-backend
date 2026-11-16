@@ -122,12 +122,13 @@ class AttendanceSummary
     }
 
     /** @return Collection<int, Employee> sorted by group block order (null last), then name */
-    public function employees(string $from, string $to): Collection
+    public function employees(string $from, string $to, ?string $q = null): Collection
     {
         $order = array_flip(array_map(fn (EmploymentGroup $g) => $g->value, EmploymentGroup::cases()));
 
         return Employee::withTrashed()
             ->where(fn ($q) => $q->where(fn ($q) => $q->active()->whereNull('deleted_at'))->orWhereHas('attendances', fn ($a) => $a->whereBetween('work_date', [$from, $to])))
+            ->search($q)
             ->orderBy('last_name')->orderBy('first_name')->get()
             ->sortBy(fn (Employee $e) => $e->employment_group ? $order[$e->employment_group->value] : count($order))
             ->values();
