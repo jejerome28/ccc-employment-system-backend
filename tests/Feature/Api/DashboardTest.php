@@ -58,4 +58,43 @@ class DashboardTest extends TestCase
             ->assertJsonPath('data.date', '2026-11-13')
             ->assertJsonPath('data.stats.completed', 1);
     }
+
+    public function test_dashboard_paginates_employees_25_per_page(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        Employee::factory()->count(30)->create();
+
+        $this->getJson('/api/dashboard?date=2026-09-30')
+            ->assertOk()
+            ->assertJsonCount(25, 'data.employees')
+            ->assertJsonPath('data.meta', ['current_page' => 1, 'last_page' => 2, 'per_page' => 25, 'total' => 30]);
+
+        $this->getJson('/api/dashboard?date=2026-09-30&page=2')
+            ->assertJsonCount(5, 'data.employees');
+    }
+
+    public function test_dashboard_stats_ignore_q_and_page(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $employees = Employee::factory()->count(30)->create();
+        foreach ($employees->take(3) as $e) {
+            Attendance::factory()->for($e)->create(['work_date' => '2026-09-30', 'clock_in_at' => '2026-09-30 00:00:00', 'clock_out_at' => '2026-09-30 04:00:00']);
+        }
+        $one = $employees->last();
+
+        $this->getJson('/api/dashboard?date=2026-09-30&page=2&q='.urlencode($one->employee_code))
+            ->assertOk()
+            ->assertJsonPath('data.stats.active', 30)
+            ->assertJsonPath('data.stats.completed', 3)
+            ->assertJsonPath('data.stats.not_in', 27)
+            ->assertJsonPath('data.meta.current_page', 2)
+            ->assertJsonPath('data.meta.total', 1);
+    }
+
+    public function test_dashboard_rejects_bad_page(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->getJson('/api/dashboard?page=0')->assertUnprocessable();
+    }
 }
