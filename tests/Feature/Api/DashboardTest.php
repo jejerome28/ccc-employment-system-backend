@@ -46,6 +46,18 @@ class DashboardTest extends TestCase
             ->assertJsonPath('data.employees.2.today_attendance', null);
     }
 
+    public function test_stats_ignore_archived_employees_punches(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        Employee::factory()->create();
+        $gone = Employee::factory()->create();
+        Attendance::factory()->for($gone)->create(['work_date' => '2026-09-30', 'clock_in_at' => '2026-09-30 00:00:00', 'clock_out_at' => '2026-09-30 04:00:00']);
+        $gone->delete();
+
+        $this->getJson('/api/dashboard?date=2026-09-30')
+            ->assertJsonPath('data.stats', ['employees' => 1, 'active' => 1, 'clocked_in' => 0, 'completed' => 0, 'not_in' => 1]);
+    }
+
     public function test_without_date_shows_latest_day_with_punches(): void
     {
         Sanctum::actingAs(User::factory()->create());
