@@ -15,16 +15,24 @@ class DashboardController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $date = $request->validate(['date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.AttendanceDate::today()]])['date'] ?? Attendance::defaultDate();
+        $input = $request->validate([
+            'date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.AttendanceDate::today()],
+            'q' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $date = $input['date'] ?? Attendance::defaultDate();
 
-        $employees = Employee::active()
+        $page = Employee::active()
+            ->search($input['q'] ?? null)
             ->with(['dayAttendance' => fn ($q) => $q->where('work_date', $date)])
             ->orderBy('last_name')
             ->orderBy('first_name')
-            ->get();
+            ->paginate(25);
 
-        $clockedIn = $employees->filter(fn ($e) => $e->dayAttendance?->clock_in_at && ! $e->dayAttendance?->clock_out_at)->count();
-        $completed = $employees->filter(fn ($e) => $e->dayAttendance?->clock_out_at)->count();
+        $day = fn () => Attendance::where('work_date', $date)->whereHas('employee', fn ($q) => $q->active());
+        $active = Employee::active()->count();
+        $clockedIn = $day()->whereNotNull('clock_in_at')->whereNull('clock_out_at')->count();
+        $completed = $day()->whereNotNull('clock_out_at')->count();
 
         $minutesToday = Attendance::where('work_date', $date)->get()
             ->sum(fn (Attendance $a) => $a->worked_minutes ?? 0);
@@ -33,13 +41,14 @@ class DashboardController extends Controller
             'date' => $date,
             'stats' => [
                 'employees' => Employee::count(),
-                'active' => $employees->count(),
+                'active' => $active,
                 'clocked_in' => $clockedIn,
                 'completed' => $completed,
-                'not_in' => $employees->count() - $clockedIn - $completed,
+                'not_in' => $active - $clockedIn - $completed,
             ],
             'hours_today' => round($minutesToday / 60, 2),
-            'employees' => EmployeeResource::collection($employees),
+            'employees' => EmployeeResource::collection($page->items()),
+            'meta' => ApiResponse::meta($page),
         ]);
     }
 }
