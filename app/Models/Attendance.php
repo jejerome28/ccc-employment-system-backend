@@ -53,7 +53,8 @@ class Attendance extends Model
 
     public static function defaultDate(): string
     {
-        return static::where(fn ($q) => $q->whereNotNull('clock_in_at')->orWhereNotNull('clock_out_at'))->max('work_date')
+        return static::where(fn ($q) => $q->whereNotNull('clock_in_at')->orWhereNotNull('clock_out_at'))
+            ->orderByDesc('work_date')->value('work_date')
             ?? now(config('attendance.timezone'))->toDateString();
     }
 

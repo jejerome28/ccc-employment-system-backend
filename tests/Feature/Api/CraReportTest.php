@@ -19,6 +19,12 @@ class CraReportTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->travelTo(CarbonImmutable::parse('2026-11-20 10:00', 'Asia/Manila'));
+    }
+
     private const URL = '/api/attendance/summary/cra?from=2026-11-02&to=2026-11-15';
 
     /** @return list<list<mixed>> rows of the first sheet */

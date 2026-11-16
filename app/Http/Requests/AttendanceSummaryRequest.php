@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\AttendanceDate;
 use Closure;
 use DateTimeImmutable;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,10 +14,18 @@ class AttendanceSummaryRequest extends FormRequest
         return true;
     }
 
+    /** @return array{from: string, to: string} */
+    public function range(): array
+    {
+        ['from' => $from, 'to' => $to] = $this->validated();
+
+        return ['from' => $from, 'to' => min($to, AttendanceDate::today())];
+    }
+
     public function rules(): array
     {
         return [
-            'from' => ['required', 'date_format:Y-m-d'],
+            'from' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.AttendanceDate::today()],
             'to' => [
                 'required', 'date_format:Y-m-d',
                 function (string $attribute, mixed $value, Closure $fail) {

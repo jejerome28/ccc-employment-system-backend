@@ -11,6 +11,7 @@ use App\Http\Resources\EmployeeResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Support\AttendanceDate;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ class AttendanceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->validate([
-            'date' => ['nullable', 'date_format:Y-m-d'],
+            'date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.AttendanceDate::today()],
             'q' => ['nullable', 'string', 'max:100'],
         ]);
         $date = $filters['date'] ?? Attendance::defaultDate();

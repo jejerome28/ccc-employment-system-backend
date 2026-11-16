@@ -10,6 +10,7 @@ use App\Http\Resources\EmployeeResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Support\AttendanceDate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -61,7 +62,7 @@ class EmployeeController extends Controller
 
     public function show(Request $request, Employee $employee): JsonResponse
     {
-        $month = $request->validate(['month' => ['required', 'date_format:Y-m']])['month'];
+        $month = $request->validate(['month' => ['required', 'date_format:Y-m', 'before_or_equal:'.AttendanceDate::thisMonth()]])['month'];
         [$year, $monthNumber] = explode('-', $month);
 
         $attendances = $employee->attendances()

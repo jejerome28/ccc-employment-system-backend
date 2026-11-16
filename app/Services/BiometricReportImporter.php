@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Support\AttendanceDate;
 use Carbon\CarbonImmutable;
 use DateInterval;
 use DateTimeImmutable;
@@ -124,7 +125,7 @@ class BiometricReportImporter
 
     /**
      * @param  list<array<string, mixed>>  $rows
-     * @return array{created: int, updated: int, unknown: list<array{line: int, person_id: string, name: ?string}>}
+     * @return array{created: int, updated: int, unknown: list<array{line: int, person_id: string, name: ?string}>, future: list<array{line: int, person_id: string, work_date: string}>}
      */
     public function save(array $rows): array
     {
@@ -133,9 +134,17 @@ class BiometricReportImporter
         $created = 0;
         $updated = 0;
         $unknown = [];
+        $future = [];
+        $today = AttendanceDate::today();
 
-        DB::transaction(function () use ($rows, $employeeIds, &$created, &$updated, &$unknown) {
+        DB::transaction(function () use ($rows, $employeeIds, &$created, &$updated, &$unknown, &$future, $today) {
             foreach ($rows as $row) {
+                if ($row['work_date'] > $today) {
+                    $future[] = ['line' => $row['line'], 'person_id' => $row['person_id'], 'work_date' => $row['work_date']];
+
+                    continue;
+                }
+
                 $employeeId = $employeeIds[$row['person_id']] ?? null;
 
                 if (! $employeeId) {
@@ -152,7 +161,7 @@ class BiometricReportImporter
             }
         });
 
-        return ['created' => $created, 'updated' => $updated, 'unknown' => $unknown];
+        return ['created' => $created, 'updated' => $updated, 'unknown' => $unknown, 'future' => $future];
     }
 
     /**

@@ -46,6 +46,24 @@ class EmployeeTest extends TestCase
             ->assertJsonPath('data.meta.last_page', 2);
     }
 
+    public function test_page_beyond_last_returns_empty_items_with_meta(): void
+    {
+        Employee::factory()->count(13)->create();
+        Employee::factory()->count(3)->create(['employment_group' => 'cos_teaching']);
+
+        $this->getJson('/api/employees?date=2026-09-30&page=5')
+            ->assertOk()
+            ->assertJsonCount(0, 'data.items')
+            ->assertJsonPath('data.meta.last_page', 2)
+            ->assertJsonPath('data.meta.current_page', 5);
+
+        $this->getJson('/api/employees?date=2026-09-30&group=cos_teaching&page=2')
+            ->assertOk()
+            ->assertJsonCount(0, 'data.items')
+            ->assertJsonPath('data.meta.total', 3)
+            ->assertJsonPath('data.meta.last_page', 1);
+    }
+
     public function test_index_filters_by_q_and_status(): void
     {
         Employee::factory()->create(['first_name' => 'Maria', 'status' => 'active']);

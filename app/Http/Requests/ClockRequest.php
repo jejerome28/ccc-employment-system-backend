@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\AttendanceDate;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ClockRequest extends FormRequest
@@ -17,7 +18,7 @@ class ClockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now()->addDay()->toDateString()],
+            'work_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.AttendanceDate::today()],
         ];
     }
 }

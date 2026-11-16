@@ -16,6 +16,12 @@ class AttendanceSummaryTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->travelTo(CarbonImmutable::parse('2026-11-20 10:00', 'Asia/Manila'));
+    }
+
     private function login(): void
     {
         Sanctum::actingAs(User::factory()->create());
