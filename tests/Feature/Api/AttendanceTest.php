@@ -181,6 +181,19 @@ class AttendanceTest extends TestCase
         $this->assertLessThanOrEqual($p2[0]['employee']['last_name'], end($p1)['employee']['last_name']);
     }
 
+    public function test_index_sorts_archived_employees_by_last_name(): void
+    {
+        $this->seedDay(2);
+        $archived = Employee::factory()->create(['last_name' => 'Zzarchived']);
+        Attendance::factory()->for($archived)->create(['work_date' => '2026-09-29', 'clock_in_at' => '2026-09-29 00:00:00']);
+        $archived->delete();
+
+        $names = collect($this->getJson('/api/attendance?date=2026-09-29')->assertOk()->json('data.attendances'))
+            ->pluck('employee.last_name')->all();
+
+        $this->assertSame('Zzarchived', end($names));
+    }
+
     public function test_index_total_minutes_covers_all_pages(): void
     {
         $this->seedDay(30);

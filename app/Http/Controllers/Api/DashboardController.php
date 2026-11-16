@@ -29,7 +29,7 @@ class DashboardController extends Controller
             ->orderBy('first_name')
             ->paginate(25);
 
-        $day = fn () => Attendance::where('work_date', $date)->whereHas('employee', fn ($q) => $q->active());
+        $day = fn () => Attendance::where('work_date', $date)->whereHas('employee', fn ($q) => $q->active()->whereNull('employees.deleted_at'));
         $active = Employee::active()->count();
         $clockedIn = $day()->whereNotNull('clock_in_at')->whereNull('clock_out_at')->count();
         $completed = $day()->whereNotNull('clock_out_at')->count();

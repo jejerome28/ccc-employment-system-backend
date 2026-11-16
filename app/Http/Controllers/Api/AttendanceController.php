@@ -37,7 +37,7 @@ class AttendanceController extends Controller
         $totalMinutes = (clone $query)->get()->sum(fn (Attendance $a) => $a->worked_minutes ?? 0);
 
         $page = $query->with('employee')
-            ->orderBy(Employee::select('last_name')->whereColumn('employees.id', 'attendances.employee_id'))
+            ->orderBy(Employee::withTrashed()->select('last_name')->whereColumn('employees.id', 'attendances.employee_id'))
             ->orderBy('id')
             ->paginate(25);
 
