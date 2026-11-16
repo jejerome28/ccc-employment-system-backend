@@ -23,24 +23,30 @@ class AttendanceController extends Controller
         $filters = $request->validate([
             'date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:'.AttendanceDate::today()],
             'q' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
         ]);
         $date = $filters['date'] ?? Attendance::defaultDate();
 
-        $attendances = Attendance::query()
-            ->with('employee')
+        $query = Attendance::query()
             ->where('work_date', $date)
             ->when($filters['q'] ?? null, function ($query, $term) {
                 $query->whereHas('employee', fn ($q) => $q->search($term));
-            })
-            ->get()
-            ->sortBy(fn (Attendance $a) => $a->employee->last_name)
-            ->values();
+            });
+
+        // ponytail: worked_minutes is an accessor, so sum in PHP (one day, ~550 rows max)
+        $totalMinutes = (clone $query)->get()->sum(fn (Attendance $a) => $a->worked_minutes ?? 0);
+
+        $page = $query->with('employee')
+            ->orderBy(Employee::select('last_name')->whereColumn('employees.id', 'attendances.employee_id'))
+            ->orderBy('id')
+            ->paginate(25);
 
         return ApiResponse::success('OK', [
             'date' => $date,
-            'attendances' => AttendanceResource::collection($attendances),
-            'total_minutes' => $attendances->sum(fn (Attendance $a) => $a->worked_minutes ?? 0),
+            'attendances' => AttendanceResource::collection($page->items()),
+            'total_minutes' => $totalMinutes,
             'employees' => EmployeeResource::collection(Employee::active()->orderBy('last_name')->get()),
+            'meta' => ApiResponse::meta($page),
         ]);
     }
 
