@@ -7,6 +7,7 @@ use App\Http\Requests\AttendanceSummaryRequest;
 use App\Http\Responses\ApiResponse;
 use App\Services\AttendanceSummary;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AttendanceSummaryController extends Controller
 {
@@ -14,6 +15,10 @@ class AttendanceSummaryController extends Controller
     {
         ['from' => $from, 'to' => $to] = $request->range();
 
-        return ApiResponse::success('OK', $summary->build($from, $to));
+        $data = $summary->build($from, $to, $summary->employees($from, $to, $request->validated('q')));
+        $p = (int) $request->validated('page', 1);
+        $page = new LengthAwarePaginator(array_slice($data['rows'], ($p - 1) * 25, 25), count($data['rows']), 25, $p);
+
+        return ApiResponse::success('OK', [...$data, 'rows' => $page->items(), 'meta' => ApiResponse::meta($page)]);
     }
 }

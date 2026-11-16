@@ -246,4 +246,43 @@ class AttendanceSummaryTest extends TestCase
         $this->assertSame($keys(app(AttendanceSummary::class)), $keys(new AttendanceSummary(new AttendanceCalculator, 1)));
         $this->assertCount(4, $keys(new AttendanceSummary(new AttendanceCalculator, 1)));
     }
+
+    public function test_summary_paginates_rows_and_totals_cover_all(): void
+    {
+        $this->login();
+        $gone = $this->employee();
+        $this->punch($gone, '2026-11-11', '07:00', '17:00');
+        $gone->delete(); // not in rows, but makes absences compute
+        Employee::factory()->count(30)->create(['hire_date' => '2026-01-01']);
+
+        $p1 = $this->summary('2026-11-10', '2026-11-10')->assertOk();
+        $this->assertCount(25, $p1->json('data.rows'));
+        $this->assertSame(30, $p1->json('data.meta.total'));
+        $this->assertSame(30, $p1->json('data.totals.absent'));
+
+        $p2 = $this->getJson('/api/attendance/summary?from=2026-11-10&to=2026-11-10&page=2')->assertOk();
+        $this->assertCount(5, $p2->json('data.rows'));
+        $this->assertSame(30, $p2->json('data.totals.absent'));
+    }
+
+    public function test_summary_q_filters_rows_and_totals(): void
+    {
+        $this->login();
+        $gone = $this->employee();
+        $this->punch($gone, '2026-11-11', '07:00', '17:00');
+        $gone->delete(); // not in rows, but makes absences compute
+        Employee::factory()->count(3)->create(['hire_date' => '2026-01-01']);
+        $this->employee(['last_name' => 'Zzyzxson']);
+
+        $r = $this->getJson('/api/attendance/summary?from=2026-11-10&to=2026-11-10&q=Zzyzxson')->assertOk();
+        $this->assertCount(1, $r->json('data.rows'));
+        $this->assertSame(1, $r->json('data.meta.total'));
+        $this->assertSame(1, $r->json('data.totals.absent'));
+    }
+
+    public function test_summary_rejects_bad_page(): void
+    {
+        $this->login();
+        $this->getJson('/api/attendance/summary?from=2026-11-10&to=2026-11-10&page=0')->assertUnprocessable();
+    }
 }
