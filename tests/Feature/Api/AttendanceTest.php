@@ -159,6 +159,40 @@ class AttendanceTest extends TestCase
             ->assertJsonPath('data.attendances.0.employee.first_name', 'Maria');
     }
 
+    private function seedDay(int $n): void
+    {
+        foreach (range(1, $n) as $i) {
+            Attendance::factory()->for(Employee::factory()->create(['last_name' => sprintf('Last%02d', 31 - $i)]))
+                ->create(['work_date' => '2026-09-29', 'clock_in_at' => '2026-09-29 00:00:00', 'clock_out_at' => '2026-09-29 08:00:00']);
+        }
+    }
+
+    public function test_index_paginates_25_sorted_by_last_name_across_pages(): void
+    {
+        $this->seedDay(30);
+
+        $p1 = $this->getJson('/api/attendance?date=2026-09-29')
+            ->assertOk()
+            ->assertJsonCount(25, 'data.attendances')
+            ->assertJsonPath('data.meta.last_page', 2)
+            ->json('data.attendances');
+        $p2 = $this->getJson('/api/attendance?date=2026-09-29&page=2')->assertJsonCount(5, 'data.attendances')->json('data.attendances');
+
+        $this->assertLessThanOrEqual($p2[0]['employee']['last_name'], end($p1)['employee']['last_name']);
+    }
+
+    public function test_index_total_minutes_covers_all_pages(): void
+    {
+        $this->seedDay(30);
+
+        $this->getJson('/api/attendance?date=2026-09-29&page=2')->assertJsonPath('data.total_minutes', 14400);
+    }
+
+    public function test_index_rejects_bad_page(): void
+    {
+        $this->getJson('/api/attendance?page=abc')->assertUnprocessable();
+    }
+
     public function test_index_rejects_bad_date(): void
     {
         $this->getJson('/api/attendance?date=yesterday')->assertUnprocessable();
