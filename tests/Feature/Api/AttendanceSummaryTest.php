@@ -77,6 +77,7 @@ class AttendanceSummaryTest extends TestCase
 
         $rowA = $this->rowFor($data, $a);
         $this->assertSame('1', $rowA['person_id']);
+        $this->assertSame($a->employee_code, $rowA['employee_code']);
         $this->assertEquals(3, $rowA['present']);
         $this->assertEquals(1, $rowA['absent']);
         $this->assertSame(1, $rowA['late_count']);

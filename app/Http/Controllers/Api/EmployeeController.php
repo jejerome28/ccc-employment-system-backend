@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\EmploymentGroup;
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\AttendanceResource;
@@ -26,6 +27,8 @@ class EmployeeController extends Controller
             'archived' => ['nullable', 'boolean'],
             'group' => ['nullable', Rule::in([...array_column(EmploymentGroup::cases(), 'value'), 'none'])],
         ]);
+
+        abort_if(($filters['archived'] ?? false) && $request->user()->role !== Role::Admin, 403, 'You do not have permission to do this.');
 
         $date = $filters['date'] ?? Attendance::defaultDate();
 
