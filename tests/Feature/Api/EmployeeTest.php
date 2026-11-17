@@ -175,4 +175,23 @@ class EmployeeTest extends TestCase
         $this->assertDatabaseCount('attendances', 1);
         $this->getJson("/api/employees/{$e->id}")->assertNotFound();
     }
+
+    public function test_store_saves_biometric_id(): void
+    {
+        $this->postJson('/api/employees', $this->valid + ['biometric_id' => '1001'])
+            ->assertCreated()
+            ->assertJsonPath('data.employee.biometric_id', '1001');
+    }
+
+    public function test_biometric_id_is_unique_including_archived_but_ignores_self(): void
+    {
+        Employee::factory()->create(['biometric_id' => '1001'])->delete();
+
+        $this->postJson('/api/employees', $this->valid + ['biometric_id' => '1001'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['biometric_id'], 'data.errors');
+
+        $own = Employee::factory()->create(['biometric_id' => '2002']);
+        $this->putJson("/api/employees/{$own->id}", $this->valid + ['biometric_id' => '2002'])->assertOk();
+    }
 }

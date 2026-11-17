@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\CraReportController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeCalendarController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\EmployeeImportController;
 use App\Http\Controllers\Api\ReportSignatoryController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->names('api.attendance');
 
     Route::middleware('role:admin,hr')->group(function () {
+        Route::post('/employees/import', EmployeeImportController::class)->name('api.employees.import');
+        Route::post('/attendance/import', AttendanceImportController::class)->name('api.attendance.import');
         Route::apiResource('employees', EmployeeController::class)->only(['store', 'update'])->names('api.employees');
         Route::post('/employees/{employee}/time-in', [AttendanceController::class, 'timeIn'])->name('api.attendance.time-in');
         Route::post('/employees/{employee}/time-out', [AttendanceController::class, 'timeOut'])->name('api.attendance.time-out');
@@ -47,6 +50,5 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/employees/{employee}/restore', [EmployeeController::class, 'restore'])->withTrashed()->name('api.employees.restore');
         Route::apiResource('users', UserController::class)->only(['index', 'store', 'update'])->names('api.users');
         Route::put('/report-signatories/{signatory}', [ReportSignatoryController::class, 'update'])->name('api.report-signatories.update');
-        Route::post('/attendance/import', AttendanceImportController::class)->name('api.attendance.import');
     });
 });
