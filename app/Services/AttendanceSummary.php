@@ -28,6 +28,7 @@ class AttendanceSummary
         foreach ($employees as $e) {
             $rows[$e->id] = [
                 'employee_id' => $e->id,
+                'employee_code' => $e->employee_code,
                 'person_id' => $e->biometric_id,
                 'name' => $e->full_name,
                 'department' => $e->department,

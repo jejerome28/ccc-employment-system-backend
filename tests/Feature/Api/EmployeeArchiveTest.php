@@ -122,4 +122,15 @@ class EmployeeArchiveTest extends TestCase
         $this->assertCount(1, $result['unknown']);
         $this->assertSoftDeleted($e);
     }
+
+    public function test_archived_list_is_admin_only(): void
+    {
+        $this->archived();
+
+        foreach ([User::factory()->hr()->create(), User::factory()->viewer()->create()] as $user) {
+            Sanctum::actingAs($user);
+            $this->getJson('/api/employees?archived=1')->assertForbidden();
+            $this->getJson('/api/employees')->assertOk();
+        }
+    }
 }
