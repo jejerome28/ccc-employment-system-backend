@@ -14,7 +14,7 @@ class AttendanceSummary
 
     public function __construct(private AttendanceCalculator $calculator, private int $chunkSize = 500) {}
 
-    /** @return array{from: string, to: string, computed_through: ?string, ungrouped_count: int, rows: list<array<string, mixed>>, totals: array<string, int|float>, needs_check: list<array{employee_id: int, name: string, work_date: string, punch: string}>} */
+    /** @return array{from: string, to: string, computed_through: ?string, ungrouped_count: int, rows: list<array<string, mixed>>, totals: array<string, int|float>, needs_check: list<array{attendance_id: int, employee_id: int, name: string, work_date: string, punch: string}>} */
     public function build(string $from, string $to, ?Collection $employees = null, ?string $through = null): array
     {
         $tz = config('attendance.timezone');
@@ -53,6 +53,7 @@ class AttendanceSummary
                 $row['needs_check']++;
                 $totals['needs_check']++;
                 $needsCheck[] = [
+                    'attendance_id' => $a->id,
                     'employee_id' => $employee->id,
                     'name' => $employee->full_name,
                     'work_date' => $day,
