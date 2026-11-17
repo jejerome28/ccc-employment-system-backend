@@ -42,6 +42,8 @@ class RoleAccessTest extends TestCase
             'time-in' => ['POST', '/api/employees/{e}/time-in'],
             'attendance store' => ['POST', '/api/attendance'],
             'attendance destroy' => ['DELETE', '/api/attendance/{a}'],
+            'attendance import' => ['POST', '/api/attendance/import'],
+            'employee import' => ['POST', '/api/employees/import'],
         ];
     }
 
@@ -66,7 +68,7 @@ class RoleAccessTest extends TestCase
         $this->putJson("/api/employees/{$e->id}", [...$this->valid, 'position' => 'HR Head'])->assertOk();
         $this->deleteJson("/api/employees/{$e->id}")->assertForbidden();
         $this->assertNotSoftDeleted($e);
-        $this->postJson('/api/attendance/import')->assertForbidden();
+        $this->postJson('/api/attendance/import')->assertUnprocessable(); // hr may import; 422 = no file
     }
 
     public function test_admin_can_archive(): void

@@ -22,6 +22,7 @@ class EmployeeRequest extends FormRequest
 
         return [
             'employee_code' => ['required', 'string', 'max:30', Rule::unique('employees')->ignore($id)],
+            'biometric_id' => ['nullable', 'string', 'max:30', Rule::unique('employees')->ignore($id)],
             'first_name' => ['required', 'string', 'max:60'],
             'last_name' => ['required', 'string', 'max:60'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('employees')->ignore($id)],
