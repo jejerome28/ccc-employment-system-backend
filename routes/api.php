@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EmployeeCalendarController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\EmployeeImportController;
+use App\Http\Controllers\Api\EmployeeLookupController;
 use App\Http\Controllers\Api\ReportSignatoryController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -20,29 +21,27 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me'])->name('api.me');
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
-
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
-
-    Route::apiResource('employees', EmployeeController::class)->only(['index', 'show'])->names('api.employees');
-    Route::get('/employees/{employee}/calendar', EmployeeCalendarController::class)->name('api.employees.calendar');
-    Route::get('/attendance/export', AttendanceExportController::class)->name('api.attendance.export');
-    Route::get('/attendance/summary', AttendanceSummaryController::class)->name('api.attendance.summary');
-    Route::get('/attendance/summary/export', AttendanceSummaryExportController::class)->name('api.attendance.summary.export');
-    Route::get('/attendance/summary/cra', CraReportController::class)->name('api.attendance.summary.cra');
-    Route::get('/report-signatories', [ReportSignatoryController::class, 'index'])->name('api.report-signatories.index');
-    Route::apiResource('attendance', AttendanceController::class)->only(['index', 'show'])
-        ->parameters(['attendance' => 'attendance'])
-        ->names('api.attendance');
+    Route::post('/lookup', EmployeeLookupController::class)->middleware('throttle:30,1')->name('api.lookup');
 
     Route::middleware('role:admin,hr')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
+
         Route::post('/employees/import', EmployeeImportController::class)->name('api.employees.import');
-        Route::post('/attendance/import', AttendanceImportController::class)->name('api.attendance.import');
-        Route::apiResource('employees', EmployeeController::class)->only(['store', 'update'])->names('api.employees');
+        Route::apiResource('employees', EmployeeController::class)->only(['index', 'show', 'store', 'update'])->names('api.employees');
+        Route::get('/employees/{employee}/calendar', EmployeeCalendarController::class)->name('api.employees.calendar');
         Route::post('/employees/{employee}/time-in', [AttendanceController::class, 'timeIn'])->name('api.attendance.time-in');
         Route::post('/employees/{employee}/time-out', [AttendanceController::class, 'timeOut'])->name('api.attendance.time-out');
-        Route::apiResource('attendance', AttendanceController::class)->only(['store', 'update', 'destroy'])
+
+        Route::post('/attendance/import', AttendanceImportController::class)->name('api.attendance.import');
+        Route::get('/attendance/export', AttendanceExportController::class)->name('api.attendance.export');
+        Route::get('/attendance/summary', AttendanceSummaryController::class)->name('api.attendance.summary');
+        Route::get('/attendance/summary/export', AttendanceSummaryExportController::class)->name('api.attendance.summary.export');
+        Route::get('/attendance/summary/cra', CraReportController::class)->name('api.attendance.summary.cra');
+        Route::apiResource('attendance', AttendanceController::class)->only(['index', 'show', 'store', 'update', 'destroy'])
             ->parameters(['attendance' => 'attendance'])
             ->names('api.attendance');
+
+        Route::get('/report-signatories', [ReportSignatoryController::class, 'index'])->name('api.report-signatories.index');
     });
 
     Route::middleware('role:admin')->group(function () {

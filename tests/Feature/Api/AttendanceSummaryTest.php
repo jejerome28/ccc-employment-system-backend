@@ -139,18 +139,6 @@ class AttendanceSummaryTest extends TestCase
         ]], $data['needs_check']);
     }
 
-    public function test_viewer_gets_no_needs_check_list(): void
-    {
-        Sanctum::actingAs(User::factory()->viewer()->create());
-        $a = $this->employee();
-        $this->punch($a, '2026-11-09', '07:05', null);
-
-        $data = $this->summary('2026-11-09', '2026-11-09')->assertOk()->json('data');
-
-        $this->assertSame([], $data['needs_check']);
-        $this->assertSame(1, $this->rowFor($data, $a)['needs_check']);
-    }
-
     public function test_inactive_employees_without_records_are_excluded(): void
     {
         $this->login();

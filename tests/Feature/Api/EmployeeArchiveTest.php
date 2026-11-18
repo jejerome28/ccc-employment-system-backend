@@ -127,7 +127,7 @@ class EmployeeArchiveTest extends TestCase
     {
         $this->archived();
 
-        foreach ([User::factory()->hr()->create(), User::factory()->viewer()->create()] as $user) {
+        foreach ([User::factory()->hr()->create()] as $user) {
             Sanctum::actingAs($user);
             $this->getJson('/api/employees?archived=1')->assertForbidden();
             $this->getJson('/api/employees')->assertOk();

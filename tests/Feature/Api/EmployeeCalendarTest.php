@@ -111,14 +111,6 @@ class EmployeeCalendarTest extends TestCase
         $this->assertSame(['in_progress', 'Out at 11:30 AM'], [$day['status'], $day['label']]);
     }
 
-    public function test_viewer_can_view_calendar(): void
-    {
-        Sanctum::actingAs(User::factory()->viewer()->create());
-        $e = Employee::factory()->create();
-
-        $this->getJson("/api/employees/{$e->id}/calendar?month=2026-10")->assertOk();
-    }
-
     public function test_archived_employee_calendar_404(): void
     {
         Sanctum::actingAs(User::factory()->create());

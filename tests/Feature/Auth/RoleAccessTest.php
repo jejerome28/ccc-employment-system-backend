@@ -26,9 +26,47 @@ class RoleAccessTest extends TestCase
         'status' => 'active',
     ];
 
-    public function test_viewer_can_read(): void
+    public static function readRoutes(): array
+    {
+        return [
+            'dashboard' => ['/api/dashboard'],
+            'employees' => ['/api/employees'],
+            'employee show' => ['/api/employees/{e}?month=2026-10'],
+            'calendar' => ['/api/employees/{e}/calendar?month=2026-10'],
+            'attendance index' => ['/api/attendance'],
+            'attendance show' => ['/api/attendance/{a}'],
+            'raw export' => ['/api/attendance/export?from=2026-11-01&to=2026-11-15'],
+            'summary' => ['/api/attendance/summary?from=2026-11-01&to=2026-11-15'],
+            'summary export' => ['/api/attendance/summary/export?from=2026-11-01&to=2026-11-15'],
+            'cra' => ['/api/attendance/summary/cra?from=2026-11-01&to=2026-11-15'],
+            'signatories' => ['/api/report-signatories'],
+        ];
+    }
+
+    #[DataProvider('readRoutes')]
+    public function test_viewer_cannot_read(string $uri): void
     {
         Sanctum::actingAs(User::factory()->viewer()->create());
+        $e = Employee::factory()->create();
+        $a = Attendance::factory()->for($e)->create();
+
+        $this->getJson(str_replace(['{e}', '{a}'], [$e->id, $a->id], $uri))
+            ->assertForbidden()
+            ->assertJsonPath('message', 'You do not have permission to do this.');
+    }
+
+    public function test_viewer_keeps_me_lookup_and_logout(): void
+    {
+        Sanctum::actingAs(User::factory()->viewer()->create());
+
+        $this->getJson('/api/me')->assertOk();
+        $this->postJson('/api/lookup', ['employee_code' => 'nope'])->assertNotFound();
+        $this->postJson('/api/logout')->assertOk();
+    }
+
+    public function test_hr_can_read(): void
+    {
+        Sanctum::actingAs(User::factory()->hr()->create());
 
         $this->getJson('/api/employees')->assertOk();
         $this->getJson('/api/attendance/summary?from=2026-11-01&to=2026-11-15')->assertOk();
@@ -79,13 +117,10 @@ class RoleAccessTest extends TestCase
         $this->deleteJson("/api/employees/{$e->id}")->assertOk();
     }
 
-    public function test_web_viewer_cannot_delete_employee(): void
+    public function test_no_blade_routes_left(): void
     {
-        $e = Employee::factory()->create();
-
-        $this->actingAs(User::factory()->viewer()->create())
-            ->delete("/employees/{$e->id}")
-            ->assertForbidden();
-        $this->assertNotSoftDeleted($e);
+        $this->get('/login')->assertNotFound();
+        $this->get('/dashboard')->assertNotFound();
+        $this->get('/employees')->assertNotFound();
     }
 }
