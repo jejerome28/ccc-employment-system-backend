@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\UpdateAccountRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\User;
@@ -41,6 +42,8 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
+        $user->tokens()->delete();
+
         $newToken = $user->createToken('api', expiresAt: now()->addMinutes(config('sanctum.expiration')));
 
         return ApiResponse::success('Logged in.', [
@@ -49,6 +52,14 @@ class AuthController extends Controller
             'expires_at' => $newToken->accessToken->expires_at?->toIso8601String(),
             'user' => new UserResource($user),
         ]);
+    }
+
+    public function update(UpdateAccountRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->update(array_filter($request->safe()->only(['name', 'password']), fn ($v) => $v !== null));
+
+        return ApiResponse::success('Account updated.', ['user' => new UserResource($user)]);
     }
 
     public function logout(Request $request): JsonResponse

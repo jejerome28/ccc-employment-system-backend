@@ -24,16 +24,15 @@ class LogoutTest extends TestCase
         $this->withToken($token)->getJson('/api/me')->assertUnauthorized();
     }
 
-    public function test_logout_keeps_other_device_tokens(): void
+    public function test_logout_revokes_only_the_current_token(): void
     {
         $user = User::factory()->create();
-        $laptopToken = $user->createToken('api')->plainTextToken;
+        $user->createToken('api');
         $phoneToken = $user->createToken('api')->plainTextToken;
 
-        $this->withToken($laptopToken)->postJson('/api/logout')->assertOk();
-        $this->app['auth']->forgetGuards();
+        $this->withToken($phoneToken)->postJson('/api/logout')->assertOk();
 
-        $this->withToken($phoneToken)->getJson('/api/me')->assertOk();
+        $this->assertSame(1, $user->tokens()->count());
     }
 
     public function test_logout_without_token_is_unauthenticated(): void

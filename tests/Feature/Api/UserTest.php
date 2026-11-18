@@ -89,4 +89,30 @@ class UserTest extends TestCase
         $this->postJson('/api/users', [])->assertForbidden();
         $this->putJson("/api/users/{$hr->id}", ['role' => 'admin'])->assertForbidden();
     }
+
+    public function test_admin_password_reset_revokes_that_users_tokens(): void
+    {
+        $user = User::factory()->hr()->create();
+        $token = $user->createToken('api')->plainTextToken;
+        $other = User::factory()->hr()->create();
+        $otherToken = $other->createToken('api')->plainTextToken;
+
+        $this->putJson("/api/users/{$user->id}", ['password' => 'newsecret1'])->assertOk();
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)->getJson('/api/me')->assertUnauthorized();
+        $this->app['auth']->forgetGuards();
+        $this->withToken($otherToken)->getJson('/api/me')->assertOk();
+    }
+
+    public function test_update_without_password_keeps_tokens(): void
+    {
+        $user = User::factory()->hr()->create();
+        $token = $user->createToken('api')->plainTextToken;
+
+        $this->putJson("/api/users/{$user->id}", ['name' => 'Renamed', 'role' => 'viewer'])->assertOk();
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)->getJson('/api/me')->assertOk();
+    }
 }
