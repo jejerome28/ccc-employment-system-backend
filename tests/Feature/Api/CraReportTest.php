@@ -68,7 +68,7 @@ class CraReportTest extends TestCase
 
     private function download(): array
     {
-        Sanctum::actingAs(User::factory()->viewer()->create());
+        Sanctum::actingAs(User::factory()->hr()->create());
 
         return $this->rows($this->get(self::URL)->assertOk());
     }
@@ -169,7 +169,7 @@ class CraReportTest extends TestCase
     public function test_tardy_cell_has_three_decimal_format(): void
     {
         $this->emp('Ana', 'Abad', 'permanent');
-        Sanctum::actingAs(User::factory()->viewer()->create());
+        Sanctum::actingAs(User::factory()->hr()->create());
         $zip = new \ZipArchive;
         $zip->open($this->get(self::URL)->baseResponse->getFile()->getPathname());
 
@@ -207,7 +207,7 @@ class CraReportTest extends TestCase
 
     private function zipFor(string $url = self::URL): \ZipArchive
     {
-        Sanctum::actingAs(User::factory()->viewer()->create());
+        Sanctum::actingAs(User::factory()->hr()->create());
         $zip = new \ZipArchive;
         $zip->open($this->get($url)->baseResponse->getFile()->getPathname());
 
@@ -248,9 +248,9 @@ class CraReportTest extends TestCase
         $this->assertSame('Checked By:', (string) $rows[$i + 2][1]);
     }
 
-    public function test_any_role_can_download_and_range_validated(): void
+    public function test_hr_can_download_and_range_validated(): void
     {
-        Sanctum::actingAs(User::factory()->viewer()->create());
+        Sanctum::actingAs(User::factory()->hr()->create());
 
         $response = $this->get(self::URL)->assertOk();
         $this->assertStringContainsString('spreadsheetml.sheet', $response->headers->get('Content-Type'));

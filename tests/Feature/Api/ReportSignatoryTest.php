@@ -25,7 +25,7 @@ class ReportSignatoryTest extends TestCase
         $this->assertSame('DR. RONALD A. GONZALES, LPT', $last->name);
         $this->assertSame("College President\nCity College of Calamba", $last->title);
 
-        Sanctum::actingAs(User::factory()->viewer()->create());
+        Sanctum::actingAs(User::factory()->hr()->create());
         $this->getJson(route('api.report-signatories.index'))->assertOk()
             ->assertJsonCount(4, 'data.signatories')
             ->assertJsonPath('data.signatories.0.position', 1);
