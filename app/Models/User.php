@@ -23,4 +23,13 @@ class User extends Authenticatable
             'role' => Role::class,
         ];
     }
+
+    protected static function booted(): void
+    {
+        static::updated(function (User $user) {
+            if ($user->wasChanged('password')) {
+                $user->tokens()->delete();
+            }
+        });
+    }
 }

@@ -18,12 +18,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('api.login');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'single-session'])->group(function () {
     Route::get('/me', [AuthController::class, 'me'])->name('api.me');
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
     Route::post('/lookup', EmployeeLookupController::class)->middleware('throttle:30,1')->name('api.lookup');
 
     Route::middleware('role:admin,hr')->group(function () {
+        Route::put('/me', [AuthController::class, 'update'])->middleware('throttle:10,1')->name('api.me.update');
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('api.dashboard');
 
         Route::post('/employees/import', EmployeeImportController::class)->name('api.employees.import');

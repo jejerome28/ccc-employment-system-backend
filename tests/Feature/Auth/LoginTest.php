@@ -132,4 +132,39 @@ class LoginTest extends TestCase
             ->assertJsonPath('success', false)
             ->assertJsonStructure(['data' => ['retry_after']]);
     }
+
+    public function test_new_login_revokes_older_tokens(): void
+    {
+        $user = User::factory()->create();
+        $old = $this->postJson('/api/login', ['email' => $user->email, 'password' => 'password'])->json('data.token');
+        $new = $this->postJson('/api/login', ['email' => $user->email, 'password' => 'password'])->json('data.token');
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($old)->getJson('/api/me')->assertUnauthorized();
+        $this->app['auth']->forgetGuards();
+        $this->withToken($new)->getJson('/api/me')->assertOk();
+        $this->assertSame(1, $user->tokens()->count());
+    }
+
+    public function test_new_login_revokes_older_tokens_for_viewer_too(): void
+    {
+        $viewer = User::factory()->viewer()->create();
+        $kioskA = $viewer->createToken('api')->plainTextToken;
+
+        $this->postJson('/api/login', ['email' => $viewer->email, 'password' => 'password'])->assertOk();
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($kioskA)->getJson('/api/me')->assertUnauthorized();
+    }
+
+    public function test_failed_login_keeps_existing_tokens(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('api')->plainTextToken;
+
+        $this->postJson('/api/login', ['email' => $user->email, 'password' => 'wrong-pass'])->assertUnauthorized();
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)->getJson('/api/me')->assertOk();
+    }
 }
